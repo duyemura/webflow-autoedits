@@ -1,0 +1,26 @@
+{
+  "id": "pushpress-main",
+  "name": "PushPress Marketing Site",
+  "webflowSiteId": "",
+  "webflowApiToken": "",
+  "stagingDomain": "pushpress-main.webflow.io",
+  "productionDomain": "www.pushpress.com",
+  "linearTeamId": "",
+  "triggerStatus": "Ready for Automation",
+  "statusMap": {
+    "inProgress": "In Progress",
+    "needsInfo": "Needs Info",
+    "review": "In Review",
+    "done": "Done",
+    "blocked": "Blocked"
+  },
+  "mode": "human-review",
+  "allowedTicketTypes": ["cms-content", "page-content"],
+  "maxRetries": 2,
+  "testing": {
+    "baseUrl": "https://pushpress-main.webflow.io",
+    "visualRegressionThreshold": 0.05,
+    "timeout": 30000
+  },
+  "maxCostPerRun": 5.0
+}

@@ -1,0 +1,9 @@
+node_modules/
+dist/
+.env
+audit/*.json
+test-results.json
+test-results/
+src/shared/testing/generated/*.ts
+data/oauth-tokens.json
+spa/dist/
