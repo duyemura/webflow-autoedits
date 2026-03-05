@@ -139,6 +139,11 @@ const sitesRoute: FastifyPluginAsync = async (app) => {
       return reply.status(500).send({ error: 'Failed to create home page' });
     }
 
+    // Seed a minimal nav so the site renders with at least a Home link
+    await db.from('nav_items').insert([
+      { site_id: site.id, label: 'Home', url: '/', order: 0, visible: true, is_cta: false },
+    ] as never);
+
     return reply.status(201).send({ siteId: site.id, subdomain });
   });
 
@@ -232,6 +237,27 @@ const sitesRoute: FastifyPluginAsync = async (app) => {
         published: true,
       } as never);
       repairs.push('created home page');
+    }
+
+    // Repair nav_items if completely empty
+    const { count: navCount } = await db.from('nav_items')
+      .select('id', { count: 'exact', head: true }).eq('site_id', siteId) as { count: number | null };
+    if (!navCount) {
+      // Seed with all published pages as nav items
+      const { data: sitePages } = await db.from('pages')
+        .select('slug, title').eq('site_id', siteId).eq('published', true) as { data: { slug: string; title: string | null }[] | null };
+      const navRows = (sitePages ?? []).map((p, i) => ({
+        site_id: siteId,
+        label: p.title ?? p.slug.charAt(0).toUpperCase() + p.slug.slice(1),
+        url: p.slug === 'home' ? '/' : `/${p.slug}`,
+        order: i,
+        visible: true,
+        is_cta: false,
+      }));
+      if (navRows.length > 0) {
+        await db.from('nav_items').insert(navRows as never);
+        repairs.push(`created ${navRows.length} nav item(s)`);
+      }
     }
 
     if (repairs.length === 0) {
