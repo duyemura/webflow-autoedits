@@ -293,6 +293,11 @@ export function SiteChat() {
                 msg.role === "user" ? "bg-blue-600 text-white" : "bg-white border text-gray-800"
               }`}
             >
+              {/* User message content */}
+              {msg.role === "user" && msg.content && (
+                <p className="whitespace-pre-wrap text-sm">{msg.content}</p>
+              )}
+
               {msg.pending && !msg.content && (
                 <p className="text-sm text-gray-400 italic">Working...</p>
               )}
