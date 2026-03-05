@@ -234,18 +234,14 @@
                     title="Class Schedule"></iframe>
           </div>
         {{else}}
-          <div style="padding:3rem 2rem;text-align:center;background:#f9f9f9;border-radius:8px;">
-            <p style="font-size:1.05rem;font-weight:600;color:var(--color-secondary);margin-bottom:.5rem;">Live schedule coming soon</p>
-            <p style="color:#999;font-size:.9rem;max-width:40ch;margin:0 auto;">
-              Add your booking/schedule embed URL in the chat to display your live class schedule here.
-              {{#if ../config.phone}} Questions? Call <a href="tel:{{../config.phone}}" style="color:var(--color-primary)">{{../config.phone}}</a>.{{/if}}
-            </p>
-            {{#if ../config.booking_url}}
-            <a href="{{../config.booking_url}}" target="_blank" rel="noopener"
-               style="display:inline-block;margin-top:1.25rem;padding:.6rem 1.4rem;background:var(--color-primary);color:#fff;border-radius:4px;font-weight:600;font-size:.9rem;">
-              Book a Class →
-            </a>
-            {{/if}}
+          <div class="pp-schedule"
+               id="pp-schedule"
+               data-site-id="{{../config.site_id}}"
+               data-booking-url="{{../config.booking_url}}"
+               data-phone="{{../config.phone}}">
+            <div class="pp-sched__skeleton">
+              <div class="pp-sk-card"></div><div class="pp-sk-card"></div><div class="pp-sk-card"></div>
+            </div>
           </div>
         {{/if}}
       </div>

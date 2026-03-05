@@ -1,6 +1,6 @@
 import type { PPClass, PPClassType, ScheduleClass } from './types.js';
 
-const BASE = 'https://api.pushpressdev.com';
+const BASE = 'https://api.pushpress.com/v3';
 
 async function ppFetch<T>(path: string, apiKey: string, companyId: string): Promise<T> {
   const res = await fetch(`${BASE}${path}`, {
