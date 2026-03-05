@@ -192,6 +192,14 @@
       {{#if ../config.booking_url}}<a href="{{../config.booking_url}}" class="btn btn--secondary">Book a Free Call</a>{{/if}}
     </section>
     {{/eq}}
+    {{#eq section_type "embed"}}
+    <section class="section" data-section="embed">
+      <div style="padding: 0 3rem 4.5rem;">
+        {{#if heading}}<h2 style="font-family:var(--font-heading);font-size:clamp(1.6rem,3vw,2.4rem);letter-spacing:.04em;color:var(--color-secondary);margin-bottom:1.5rem;">{{heading}}</h2>{{/if}}
+        {{{config.code}}}
+      </div>
+    </section>
+    {{/eq}}
   {{/each}}
 
   <footer class="footer" data-section="footer">

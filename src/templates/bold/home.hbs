@@ -276,6 +276,16 @@
   </section>
   {{/eq}}
 
+  {{!-- EMBED (iframes, scripts, forms, widgets) --}}
+  {{#eq section_type "embed"}}
+  <section class="section embed-section" data-section="embed">
+    <div class="section__inner">
+      {{#if heading}}<div class="section__header"><h2 class="section__heading">{{heading}}</h2>{{#if subheading}}<p class="section__subheading">{{subheading}}</p>{{/if}}</div>{{/if}}
+      {{{config.code}}}
+    </div>
+  </section>
+  {{/eq}}
+
 {{/each}}
 
 {{> footer}}

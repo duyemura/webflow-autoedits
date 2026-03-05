@@ -93,11 +93,11 @@ async function fetchSiteData(siteId: string, pageSlug: string) {
 
 // ── Build a single page ─────────────────────────────────────────
 async function buildPage(siteId: string, templateSlug: string, pageSlug: string): Promise<string> {
-  const [template, data] = await Promise.all([
-    loadTemplate(templateSlug, pageSlug === 'home' ? 'home' : 'home'), // expand for inner pages later
-    fetchSiteData(siteId, pageSlug),
-  ]);
-
+  const data = await fetchSiteData(siteId, pageSlug);
+  // Pick template file: landing pages get landing.hbs, homepage gets home.hbs, others fall back to page.hbs
+  const page = data.page as Page & { is_landing?: boolean };
+  const templateFile = page.is_landing ? 'landing' : pageSlug === 'home' ? 'home' : pageSlug;
+  const template = await loadTemplate(templateSlug, templateFile);
   return template({ ...data, year: new Date().getFullYear() });
 }
 
