@@ -1,8 +1,17 @@
 # PushPress Platform API — Reference
 
-Base URL: `https://api.pushpressdev.com`
-Docs: `https://api.pushpressdev.com/platform/docs/`
-OpenAPI spec: `https://api.pushpressdev.com/platform/docs/openapi.json`
+## Base URLs
+
+| Purpose | URL |
+|---------|-----|
+| Company verify (production) | `https://api.pushpress.com/v3` |
+| Classes / schedule (dev docs) | `https://api.pushpressdev.com` |
+
+- `GET /company` — use `api.pushpress.com/v3`
+- `GET /classes`, `GET /classes/types` — use `api.pushpressdev.com` (per OpenAPI spec)
+- Both use `API-KEY` header for auth
+- Docs: `https://api.pushpressdev.com/platform/docs/`
+- OpenAPI spec: `https://api.pushpressdev.com/platform/docs/openapi.json`
 
 ## Authentication
 

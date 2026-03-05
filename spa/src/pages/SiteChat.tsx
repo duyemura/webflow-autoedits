@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from "react";
-import { useParams, Link } from "react-router-dom";
+import { useParams, Link, useSearchParams } from "react-router-dom";
 import { useMutation, useQuery } from "@tanstack/react-query";
 
 interface ChatMessage {
@@ -38,10 +38,17 @@ async function sendChat(siteId: string, messages: { role: string; content: strin
   return res.json();
 }
 
+const BUILD_MESSAGE =
+  "Build a complete gym website — all standard pages: programs, about, coaches, schedule, pricing, contact, and a free trial landing page. Use the gym info already in site_config. Build all sections with strong conversion-focused copy. After all pages are created, call rebuild_site once.";
+
 export function SiteChat() {
   const { siteId } = useParams<{ siteId: string }>();
+  const [searchParams] = useSearchParams();
+  const isNewSite = searchParams.get("build") === "true";
+
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState("");
+  const [autoBuildFired, setAutoBuildFired] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const { data: site } = useQuery({
@@ -65,6 +72,16 @@ export function SiteChat() {
       ]);
     },
   });
+
+  // Auto-fire site build when navigated here from new site creation
+  useEffect(() => {
+    if (isNewSite && site && !autoBuildFired && !chatMutation.isPending) {
+      setAutoBuildFired(true);
+      const newMessages = [{ role: "user" as const, content: BUILD_MESSAGE }];
+      setMessages(newMessages);
+      chatMutation.mutate(newMessages);
+    }
+  }, [isNewSite, site, autoBuildFired, chatMutation.isPending]);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -102,12 +119,20 @@ export function SiteChat() {
       </div>
 
       <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-gray-50">
-        {messages.length === 0 && (
+        {messages.length === 0 && !chatMutation.isPending && (
           <div className="text-center text-gray-400 mt-20">
             <p className="text-lg mb-2">What would you like to change?</p>
             <p className="text-sm text-gray-300">
               Try: "Change the hero headline" · "Update the phone number" · "Make the primary color navy"
             </p>
+          </div>
+        )}
+
+        {isNewSite && messages.length === 0 && chatMutation.isPending && (
+          <div className="flex flex-col items-center justify-center mt-20 gap-4">
+            <div className="animate-spin w-8 h-8 border-2 border-blue-600 border-t-transparent rounded-full" />
+            <p className="text-gray-500 font-medium">Building your site...</p>
+            <p className="text-sm text-gray-400">Creating all pages, sections, and navigation. This takes about 30 seconds.</p>
           </div>
         )}
 
@@ -138,7 +163,7 @@ export function SiteChat() {
           </div>
         ))}
 
-        {chatMutation.isPending && (
+        {chatMutation.isPending && messages.length > 0 && (
           <div className="flex justify-start">
             <div className="bg-white border rounded-lg p-3 text-gray-400 text-sm">Thinking...</div>
           </div>
