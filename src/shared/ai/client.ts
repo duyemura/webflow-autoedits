@@ -27,8 +27,8 @@ export interface AICallResult {
 }
 
 const DEFAULT_MODEL = "claude-sonnet-4-20250514";
-const MAX_TOKENS = 4096;
-const MAX_TURNS = 20;
+const MAX_TOKENS = 8192;
+const MAX_TURNS = 40;
 
 export class AIClient {
   private client: Anthropic;
