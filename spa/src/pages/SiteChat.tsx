@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from "react";
-import { useParams, Link, useSearchParams } from "react-router-dom";
+import { useParams, Link, useSearchParams, useLocation } from "react-router-dom";
 import { useMutation, useQuery } from "@tanstack/react-query";
 
 interface ChatMessage {
@@ -38,13 +38,20 @@ async function sendChat(siteId: string, messages: { role: string; content: strin
   return res.json();
 }
 
-const BUILD_MESSAGE =
-  "Build a complete gym website — all standard pages: programs, about, coaches, schedule, pricing, contact, and a free trial landing page. Use the gym info already in site_config. Build all sections with strong conversion-focused copy. After all pages are created, call rebuild_site once.";
+function buildMessage(scrapeSummary?: string): string {
+  const base = "Build a complete gym website — all standard pages: programs, about, coaches, schedule, pricing, contact, and a free trial landing page. Build all sections with strong conversion-focused copy. After all pages are created, call rebuild_site once.";
+  if (scrapeSummary?.trim()) {
+    return `${base}\n\nHere's content from their existing website — use it to write specific, real copy instead of placeholders:\n\n${scrapeSummary}`;
+  }
+  return `${base} Use the gym info already in site_config.`;
+}
 
 export function SiteChat() {
   const { siteId } = useParams<{ siteId: string }>();
   const [searchParams] = useSearchParams();
+  const location = useLocation();
   const isNewSite = searchParams.get("build") === "true";
+  const scrapeSummary = (location.state as { scrapeSummary?: string } | null)?.scrapeSummary;
 
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState("");
@@ -77,7 +84,7 @@ export function SiteChat() {
   useEffect(() => {
     if (isNewSite && site && !autoBuildFired && !chatMutation.isPending) {
       setAutoBuildFired(true);
-      const newMessages = [{ role: "user" as const, content: BUILD_MESSAGE }];
+      const newMessages = [{ role: "user" as const, content: buildMessage(scrapeSummary) }];
       setMessages(newMessages);
       chatMutation.mutate(newMessages);
     }
