@@ -77,7 +77,7 @@ const scheduleRoute: FastifyPluginAsync = async (app) => {
     try {
       const [rawClasses, rawTypes] = await Promise.all([
         getClasses(config.pp_api_key, config.pp_company_id, { startsAfter: now, limit: 10 }),
-        getClassTypes(config.pp_api_key, config.pp_company_id),
+        getClassTypes(config.pp_api_key, config.pp_company_id).catch((e: unknown) => ({ error: e instanceof Error ? e.message : String(e) })),
       ]);
       return reply.send({
         nowUnix: now,

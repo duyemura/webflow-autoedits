@@ -85,9 +85,10 @@ export async function getSchedule(
 ): Promise<ScheduleClass[]> {
   const startsAfter = Math.floor(Date.now() / 1000);
 
+  // Fetch classes; class types are optional (endpoint may not exist on all PP plans)
   const [classes, types] = await Promise.all([
     getClasses(apiKey, companyId, { startsAfter, limit: 200 }),
-    getClassTypes(apiKey, companyId),
+    getClassTypes(apiKey, companyId).catch(() => [] as PPClassType[]),
   ]);
 
   const typeColors = new Map<string, string>(
