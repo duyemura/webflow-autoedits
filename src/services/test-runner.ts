@@ -84,9 +84,7 @@ async function testHeroContent(siteId: string): Promise<TestResult> {
 async function testNavPopulated(siteId: string): Promise<TestResult> {
   return runTest('nav_populated', async () => {
     const html = await readHtml(siteId, 'home').catch(() => { throw new Error('Homepage not built yet'); });
-    // Count <a href links in the nav/header area (first 5000 chars usually covers nav)
-    const navChunk = html.slice(0, 8000);
-    const links = (navChunk.match(/<a\s[^>]*href="[^"#][^"]*"/gi) ?? []).length;
+    const links = (html.match(/<a\s[^>]*href="[^"#][^"]*"/gi) ?? []).length;
     if (links < 3) throw new Error(`Only ${links} nav link(s) found — expected at least 3`);
     return `${links} navigation links`;
   });
@@ -96,8 +94,7 @@ async function testNavPopulated(siteId: string): Promise<TestResult> {
 async function testInternalLinks(siteId: string): Promise<TestResult> {
   return runTest('internal_links', async () => {
     const html = await readHtml(siteId, 'home').catch(() => { throw new Error('Homepage not built yet'); });
-    const navChunk = html.slice(0, 8000);
-    const hrefs = [...navChunk.matchAll(/href="(\/[^"?#]+)"/gi)].map(m => m[1]);
+    const hrefs = [...html.matchAll(/href="(\/[^"?#]+)"/gi)].map(m => m[1]);
     const unique = [...new Set(hrefs)].filter(h => h !== '/');
 
     const broken: string[] = [];
