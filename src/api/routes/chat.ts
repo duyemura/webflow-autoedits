@@ -85,6 +85,14 @@ After ANY rebuild where the test shows 0 nav links, or any time nav_items is emp
 Standard nav labels: Home → /, Programs → /programs, About → /about, Schedule → /schedule, Contact → /contact
 Do this automatically. Do not ask. Do not offer. Just do it.
 
+CRITICAL RULE — nav items must only link to real pages:
+Before creating a nav_item, check that the page exists using list_pages.
+Never add a nav link to a page that hasn't been created yet.
+If a test reports dead internal links (/programs, /about, etc.), either:
+  a) Build those missing pages immediately (create_page + sections + items + rebuild), OR
+  b) Remove the broken nav items pointing to non-existent pages
+Do not leave dead links — always fix them before finishing.
+
 SCRAPING:
 - "scan this url" / "pull colors from" / "import from" / "use their website" / any URL mention → call scrape_url first, then apply what you find
 - After scraping: update primary_color, secondary_color, font_heading, font_body, logo_url in site_config with what was found, then rebuild_site
