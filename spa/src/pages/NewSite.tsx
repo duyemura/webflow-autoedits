@@ -4,7 +4,9 @@ import { useMutation } from "@tanstack/react-query";
 // Inline type — mirrors ScrapeResult from src/api/routes/scrape.ts
 interface ScrapeResult {
   name?: string; tagline?: string; city?: string; state?: string; zip?: string;
-  phone?: string; email?: string; address?: string; primary_color?: string;
+  phone?: string; email?: string; address?: string;
+  primary_color?: string; secondary_color?: string;
+  logo_url?: string; font_heading?: string; font_body?: string;
   instagram_url?: string; facebook_url?: string; tiktok_url?: string; youtube_url?: string;
   booking_url?: string; hours?: Record<string, string>;
   programs?: { name: string; description: string }[];
@@ -58,6 +60,7 @@ async function verifyPP(apiKey: string): Promise<PPCompany> {
 
 async function createSite(payload: GymInfo & {
   template_slug: string; pp_api_key?: string; pp_company_id?: string;
+  secondary_color?: string; font_heading?: string; font_body?: string; logo_url?: string;
 }): Promise<{ siteId: string }> {
   const res = await fetch("/api/sites", {
     method: "POST",
@@ -283,25 +286,31 @@ function PhasePushPress({ pp, onChange, onNext, onSkip, scraped, gym, onGymChang
       {/* Trust card — shown when scraped */}
       {scraped && (
         <div className="mb-5 p-4 bg-gray-50 border border-gray-200 rounded-lg">
-          <div className="flex items-start justify-between gap-4">
-            <div className="min-w-0">
-              {gym.primary_color && (
-                <div className="w-3 h-3 rounded-full inline-block mr-2 border border-gray-200 align-middle"
-                  style={{ background: gym.primary_color }} />
-              )}
-              <span className="font-semibold text-gray-900">{gym.name || "Your gym"}</span>
-              {location && <span className="text-sm text-gray-500 ml-2">{location}</span>}
+          <div className="flex items-start gap-3">
+            {scraped.logo_url && (
+              <img src={scraped.logo_url} alt="logo" className="w-10 h-10 object-contain rounded flex-shrink-0 bg-white border border-gray-100 p-0.5" />
+            )}
+            <div className="min-w-0 flex-1">
+              <div className="flex items-center gap-2 flex-wrap">
+                {gym.primary_color && (
+                  <div className="w-3 h-3 rounded-full flex-shrink-0 border border-gray-200"
+                    style={{ background: gym.primary_color }} />
+                )}
+                {scraped.secondary_color && (
+                  <div className="w-3 h-3 rounded-full flex-shrink-0 border border-gray-200"
+                    style={{ background: scraped.secondary_color }} />
+                )}
+                <span className="font-semibold text-gray-900">{gym.name || "Your gym"}</span>
+                {location && <span className="text-sm text-gray-500">{location}</span>}
+              </div>
               {scraped.icp && (
                 <p className="text-xs text-gray-500 mt-1.5 leading-relaxed">{scraped.icp}</p>
               )}
-              {(scraped.programs?.length || scraped.coaches?.length) && (
-                <p className="text-xs text-gray-400 mt-1">
-                  {[
-                    scraped.programs?.length && `${scraped.programs.length} programs`,
-                    scraped.coaches?.length && `${scraped.coaches.length} coaches`,
-                  ].filter(Boolean).join(" · ")} imported
-                </p>
-              )}
+              <p className="text-xs text-gray-400 mt-1 flex flex-wrap gap-x-2">
+                {scraped.programs?.length ? <span>{scraped.programs.length} programs</span> : null}
+                {scraped.coaches?.length ? <span>{scraped.coaches.length} coaches</span> : null}
+                {scraped.font_heading ? <span>font: {scraped.font_heading}</span> : null}
+              </p>
             </div>
           </div>
 
@@ -493,6 +502,13 @@ function buildScrapeSummary(s: ScrapeResult): string {
     parts.push(`Hours: ${Object.entries(s.hours).map(([d, h]) => `${d} ${h}`).join(", ")}`);
   }
   if (s.booking_url) parts.push(`Booking URL: ${s.booking_url}`);
+  if (s.logo_url) parts.push(`Logo URL: ${s.logo_url}`);
+  if (s.font_heading || s.font_body) {
+    parts.push(`Fonts: heading="${s.font_heading ?? 'unknown'}", body="${s.font_body ?? 'unknown'}"`);
+  }
+  if (s.instagram_url) parts.push(`Instagram: ${s.instagram_url}`);
+  if (s.facebook_url) parts.push(`Facebook: ${s.facebook_url}`);
+  if (s.tiktok_url) parts.push(`TikTok: ${s.tiktok_url}`);
   return parts.join("\n\n");
 }
 
@@ -517,6 +533,10 @@ export function NewSite() {
       template_slug: template,
       pp_api_key: pp.verified && pp.apiKey ? pp.apiKey : undefined,
       pp_company_id: pp.verified && pp.company ? pp.company.id : undefined,
+      secondary_color: scraped?.secondary_color ?? undefined,
+      font_heading: scraped?.font_heading ?? undefined,
+      font_body: scraped?.font_body ?? undefined,
+      logo_url: scraped?.logo_url ?? undefined,
     }),
     onSuccess: ({ siteId }) => {
       const scrapeSummary = scraped ? buildScrapeSummary(scraped) : null;

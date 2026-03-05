@@ -17,6 +17,10 @@ interface CreateSiteBody {
   phone?: string;
   email?: string;
   primary_color?: string;
+  secondary_color?: string;
+  font_heading?: string;
+  font_body?: string;
+  logo_url?: string;
   template_slug?: string;
   pp_api_key?: string;
   pp_company_id?: string;
@@ -56,7 +60,7 @@ const sitesRoute: FastifyPluginAsync = async (app) => {
   // Create a new site (onboarding flow)
   app.post('/sites', async (req, reply) => {
     const body = req.body as CreateSiteBody;
-    const { name, tagline, city, state, phone, email, primary_color, template_slug, pp_api_key, pp_company_id } = body;
+    const { name, tagline, city, state, phone, email, primary_color, secondary_color, font_heading, font_body, logo_url, template_slug, pp_api_key, pp_company_id } = body;
 
     if (!name?.trim()) return reply.status(400).send({ error: 'name is required' });
 
@@ -98,12 +102,13 @@ const sitesRoute: FastifyPluginAsync = async (app) => {
       phone: phone ?? null,
       email: email ?? null,
       primary_color: primary,
-      secondary_color: '#1a1a2e',
+      secondary_color: secondary_color ?? '#1a1a2e',
       accent_color: primary,
       bg_color: '#ffffff',
       text_color: '#333333',
-      font_heading: 'Bebas Neue',
-      font_body: 'Inter',
+      font_heading: font_heading ?? 'Bebas Neue',
+      font_body: font_body ?? 'Inter',
+      logo_url: logo_url ?? null,
       pp_api_key: pp_api_key ?? null,
       pp_company_id: pp_company_id ?? null,
     } as never);
