@@ -60,10 +60,15 @@ NAVIGATION (nav_items table):
 TEMPLATE:
 - "change template" / "switch template" / "use the rail layout" / "switch to bold" → use list_templates then switch_template
 
+PAGES:
+- "add a contact page" / "create an about page" / "add a programs page" → use create_page then create_content for sections, then rebuild_site
+- When creating a new page, also add a nav_item linking to it (url: "/about", "/contact", etc.)
+- Page slugs become URLs: slug "contact" → /contact, slug "about" → /about
+
 ## Workflow
 
 1. If you need to see current data before editing, call get_content or get_site_config first
-2. Make the change using update_content, update_site_config, create_content, delete_content, or switch_template
+2. Make the change using update_page, update_content, update_site_config, create_content, create_page, or delete_content
 3. Always call rebuild_site after any change — this makes it live
 4. Confirm what changed in plain language
 
@@ -73,7 +78,8 @@ TEMPLATE:
 - Font names must be valid Google Fonts names like "Bebas Neue", "Inter", "Montserrat", "Oswald"
 - When updating pages table, always filter by slug "home" for homepage content
 - Never guess at IDs — always call get_content first to read the rows and get their IDs
-- One rebuild at the end is enough, even if you made multiple changes`;
+- One rebuild at the end is enough, even if you made multiple changes
+- Internal links between pages use root-relative paths: /about, /contact, /programs`;
 }
 
 interface ChatBody {
@@ -199,6 +205,56 @@ const chatRoute: FastifyPluginAsync = async (app) => {
       },
     }, async ({ table, id }) => {
       const data = await deleteContent(siteId, table as string, id as string);
+      return JSON.stringify(data, null, 2);
+    });
+
+    runner.register({
+      name: 'list_pages',
+      description: 'List all pages on this site. Use to understand site structure and build internal links.',
+      input_schema: { type: 'object', properties: {} },
+    }, async () => {
+      const { data, error } = await (supabase as ReturnType<typeof import('@supabase/supabase-js').createClient>)
+        .from('pages')
+        .select('id, slug, title, published')
+        .eq('site_id', siteId)
+        .order('slug' as never);
+      if (error) throw new Error(error.message);
+      return JSON.stringify(data, null, 2);
+    });
+
+    runner.register({
+      name: 'create_page',
+      description: 'Create a new page on the site. After creating, use create_content to add sections to it, then rebuild_site.',
+      input_schema: {
+        type: 'object',
+        properties: {
+          slug: { type: 'string', description: 'URL slug, e.g. "about", "contact", "programs". Becomes the page URL.' },
+          title: { type: 'string', description: 'Page title shown in browser tab' },
+          hero_headline: { type: 'string', description: 'Hero headline for the page' },
+          hero_subheading: { type: 'string', description: 'Hero subheading (optional)' },
+          hero_cta_text: { type: 'string', description: 'CTA button text (optional)' },
+          hero_cta_url: { type: 'string', description: 'CTA button URL (optional)' },
+          meta_description: { type: 'string', description: 'SEO meta description (optional)' },
+        },
+        required: ['slug', 'title', 'hero_headline'],
+      },
+    }, async ({ slug, title, hero_headline, hero_subheading, hero_cta_text, hero_cta_url, meta_description }) => {
+      const { data, error } = await (supabase as ReturnType<typeof import('@supabase/supabase-js').createClient>)
+        .from('pages')
+        .insert({
+          site_id: siteId,
+          slug,
+          title,
+          hero_headline,
+          hero_subheading: hero_subheading ?? null,
+          hero_cta_text: hero_cta_text ?? null,
+          hero_cta_url: hero_cta_url ?? null,
+          meta_description: meta_description ?? null,
+          published: true,
+        } as never)
+        .select()
+        .single();
+      if (error) throw new Error(error.message);
       return JSON.stringify(data, null, 2);
     });
 

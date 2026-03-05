@@ -38,7 +38,15 @@ async function loadTemplate(templateSlug: string, page: string): Promise<Handleb
     Handlebars.registerPartial(name, src);
   }
 
-  const src = await fs.readFile(path.join(templateDir, `${page}.hbs`), 'utf-8');
+  // Try page-specific template, fall back to generic page.hbs
+  const pagePath = path.join(templateDir, `${page}.hbs`);
+  const fallbackPath = path.join(templateDir, 'page.hbs');
+  let src: string;
+  try {
+    src = await fs.readFile(pagePath, 'utf-8');
+  } catch {
+    src = await fs.readFile(fallbackPath, 'utf-8');
+  }
   const compiled = Handlebars.compile(src);
   templateCache.set(cacheKey, compiled);
   return compiled;
