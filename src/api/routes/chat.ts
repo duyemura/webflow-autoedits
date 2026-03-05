@@ -384,6 +384,9 @@ const chatRoute: FastifyPluginAsync = async (app) => {
       return `Connection successful. Found ${count} classes in the next 7 days.\n${preview}`;
     });
 
+    // Mutable send ref so tool handlers can emit SSE events before hijack
+    let sendEvent: (event: string, data: unknown) => void = () => {};
+
     runner.register({
       name: 'rebuild_site',
       description: 'Rebuild and publish the site HTML, then run automated tests. Always call this after making any content changes.',
@@ -393,6 +396,7 @@ const chatRoute: FastifyPluginAsync = async (app) => {
       const lines = [`Site rebuilt: ${buildResult.pagesBuilt} page(s) in ${buildResult.buildTimeMs}ms`];
       try {
         const testReport = await runSiteTests(siteId);
+        sendEvent('tests', testReport);
         lines.push(testReport.summary);
       } catch (err) {
         lines.push(`Tests skipped: ${err instanceof Error ? err.message : String(err)}`);
@@ -410,6 +414,7 @@ const chatRoute: FastifyPluginAsync = async (app) => {
     const send = (event: string, data: unknown) => {
       reply.raw.write(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`);
     };
+    sendEvent = send;
 
     try {
       const aiClient = new AIClient();

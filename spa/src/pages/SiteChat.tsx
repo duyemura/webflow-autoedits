@@ -8,10 +8,28 @@ interface ToolCall {
   result: string;
 }
 
+interface TestResult {
+  name: string;
+  passed: boolean;
+  message: string;
+  durationMs: number;
+}
+
+interface TestReport {
+  siteId: string;
+  passed: number;
+  failed: number;
+  total: number;
+  results: TestResult[];
+  durationMs: number;
+  summary: string;
+}
+
 interface ChatMessage {
   role: "user" | "assistant";
   content: string;
   toolCalls?: ToolCall[];
+  testReport?: TestReport;
   pending?: boolean; // assistant message being built
 }
 
@@ -108,6 +126,58 @@ function ToolCallItem({ tc, active }: { tc: ToolCall; active?: boolean }) {
   );
 }
 
+const TEST_LABELS: Record<string, string> = {
+  pages_built: "Pages built",
+  hero_content: "Hero content",
+  nav_populated: "Navigation",
+  internal_links: "Internal links",
+  config_complete: "Site config",
+  e2e_homepage_loads: "Homepage loads",
+  e2e_mobile_no_overflow: "Mobile layout",
+  e2e_cta_buttons: "CTA buttons",
+  e2e_skipped: "E2E (skipped)",
+};
+
+function TestStatusPanel({ report }: { report: TestReport }) {
+  const [open, setOpen] = useState(false);
+  const allPassed = report.failed === 0;
+
+  return (
+    <div className={`mt-3 rounded border text-xs ${allPassed ? "border-green-200 bg-green-50" : "border-yellow-200 bg-yellow-50"}`}>
+      <button
+        className="w-full flex items-center justify-between px-3 py-2 text-left"
+        onClick={() => setOpen((v) => !v)}
+      >
+        <span className="flex items-center gap-2 font-medium">
+          {allPassed ? (
+            <span className="text-green-600">✓ Published · All {report.total} checks passed</span>
+          ) : (
+            <span className="text-yellow-700">⚠ Published · {report.passed}/{report.total} checks passed</span>
+          )}
+        </span>
+        <span className="text-gray-400">{open ? "▲" : "▼"}</span>
+      </button>
+      {open && (
+        <div className="border-t border-gray-100 px-3 py-2 space-y-1">
+          {report.results.map((r, i) => (
+            <div key={i} className="flex items-start gap-2">
+              <span className={r.passed ? "text-green-500 flex-shrink-0" : "text-red-500 flex-shrink-0"}>
+                {r.passed ? "✓" : "✗"}
+              </span>
+              <span className={r.passed ? "text-gray-600" : "text-red-700"}>
+                {TEST_LABELS[r.name] ?? r.name}
+                {!r.passed && r.message && (
+                  <span className="text-gray-400 ml-1">— {r.message}</span>
+                )}
+              </span>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export function SiteChat() {
   const { siteId } = useParams<{ siteId: string }>();
   const [searchParams] = useSearchParams();
@@ -190,15 +260,28 @@ export function SiteChat() {
               }
               return next;
             });
+          } else if (eventLine === "tests") {
+            // Test report — attach to pending message
+            const report = payload as TestReport;
+            setMessages((prev) => {
+              const next = [...prev];
+              const last = next[next.length - 1];
+              if (last?.pending) {
+                next[next.length - 1] = { ...last, testReport: report };
+              }
+              return next;
+            });
           } else if (eventLine === "done") {
             // Finalize the pending message
             const { response, toolCalls } = payload as { response: string; toolCalls: ToolCall[] };
             setMessages((prev) => {
               const next = [...prev];
+              const last = next[next.length - 1];
               next[next.length - 1] = {
                 role: "assistant",
                 content: response,
                 toolCalls,
+                testReport: last?.testReport,
                 pending: false,
               };
               return next;
@@ -321,6 +404,11 @@ export function SiteChat() {
                 <div className={`${msg.toolCalls?.length ? "pt-3 border-t border-gray-100 mt-1" : ""}`}>
                   <p className="whitespace-pre-wrap text-sm leading-relaxed">{msg.content}</p>
                 </div>
+              )}
+
+              {/* Test status panel */}
+              {msg.testReport && !msg.pending && (
+                <TestStatusPanel report={msg.testReport} />
               )}
             </div>
           </div>
