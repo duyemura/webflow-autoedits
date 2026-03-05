@@ -25,6 +25,33 @@ interface CreateSiteBody {
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const DIST_SITES = path.join(__dirname, '..', '..', '..', 'dist', 'sites');
 
+const BUILDING_HTML = `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Site Building...</title>
+  <style>
+    body { font-family: system-ui, sans-serif; display: flex; align-items: center; justify-content: center;
+           min-height: 100vh; margin: 0; background: #f9fafb; color: #374151; }
+    .card { text-align: center; padding: 3rem 2rem; }
+    .spinner { width: 40px; height: 40px; border: 3px solid #e5e7eb; border-top-color: #3b82f6;
+               border-radius: 50%; animation: spin 0.8s linear infinite; margin: 0 auto 1.5rem; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    h1 { font-size: 1.25rem; font-weight: 600; margin: 0 0 0.5rem; }
+    p { color: #9ca3af; font-size: 0.875rem; margin: 0; }
+  </style>
+  <meta http-equiv="refresh" content="5">
+</head>
+<body>
+  <div class="card">
+    <div class="spinner"></div>
+    <h1>Building your site...</h1>
+    <p>This page will refresh automatically when it's ready.</p>
+  </div>
+</body>
+</html>`;
+
 const sitesRoute: FastifyPluginAsync = async (app) => {
   // Create a new site (onboarding flow)
   app.post('/sites', async (req, reply) => {
@@ -61,8 +88,8 @@ const sitesRoute: FastifyPluginAsync = async (app) => {
 
     const primary = primary_color ?? '#E63946';
 
-    // Create site_config
-    await db.from('site_config').insert({
+    // Create site_config — fail fast if this doesn't work
+    const { error: configErr } = await db.from('site_config').insert({
       site_id: site.id,
       name,
       tagline: tagline ?? null,
@@ -81,8 +108,15 @@ const sitesRoute: FastifyPluginAsync = async (app) => {
       pp_company_id: pp_company_id ?? null,
     } as never);
 
+    if (configErr) {
+      app.log.error(configErr);
+      // Clean up the site row so we don't leave orphans
+      await db.from('sites').delete().eq('id', site.id);
+      return reply.status(500).send({ error: 'Failed to create site config' });
+    }
+
     // Create home page placeholder (AI will fill in content)
-    await db.from('pages').insert({
+    const { error: pageErr } = await db.from('pages').insert({
       site_id: site.id,
       slug: 'home',
       title: name,
@@ -92,6 +126,13 @@ const sitesRoute: FastifyPluginAsync = async (app) => {
       hero_cta_url: '#',
       published: true,
     } as never);
+
+    if (pageErr) {
+      app.log.error(pageErr);
+      await db.from('site_config').delete().eq('site_id', site.id);
+      await db.from('sites').delete().eq('id', site.id);
+      return reply.status(500).send({ error: 'Failed to create home page' });
+    }
 
     return reply.status(201).send({ siteId: site.id, subdomain });
   });
@@ -117,22 +158,81 @@ const sitesRoute: FastifyPluginAsync = async (app) => {
     }
   });
 
-  // Preview a site (serves built HTML directly — no subdomain needed)
+  // Repair a site that has an incomplete data record (re-creates missing site_config/pages)
+  app.post('/sites/:siteId/repair', async (req, reply) => {
+    const { siteId } = req.params as { siteId: string };
+    const db = supabase as ReturnType<typeof import('@supabase/supabase-js').createClient>;
+
+    const { data: site } = await db.from('sites')
+      .select('*, templates:template_id(slug)')
+      .eq('id', siteId).single() as { data: { id: string; name: string; templates: { slug: string } | null } | null };
+
+    if (!site) return reply.status(404).send({ error: 'Site not found' });
+
+    const repairs: string[] = [];
+
+    // Repair site_config if missing
+    const { data: config } = await db.from('site_config').select('site_id').eq('site_id', siteId).maybeSingle();
+    if (!config) {
+      await db.from('site_config').insert({
+        site_id: siteId,
+        name: site.name,
+        primary_color: '#E63946',
+        secondary_color: '#1a1a2e',
+        accent_color: '#E63946',
+        bg_color: '#ffffff',
+        text_color: '#333333',
+        font_heading: 'Bebas Neue',
+        font_body: 'Inter',
+      } as never);
+      repairs.push('created site_config');
+    }
+
+    // Repair home page if missing
+    const { data: homePage } = await db.from('pages')
+      .select('id').eq('site_id', siteId).eq('slug', 'home').maybeSingle();
+    if (!homePage) {
+      await db.from('pages').insert({
+        site_id: siteId,
+        slug: 'home',
+        title: site.name,
+        hero_headline: `Welcome to ${site.name}`,
+        hero_subheading: 'Where strength is built.',
+        hero_cta_text: 'Book a Free Intro',
+        hero_cta_url: '#',
+        published: true,
+      } as never);
+      repairs.push('created home page');
+    }
+
+    if (repairs.length === 0) {
+      return reply.send({ message: 'Site data looks complete — no repairs needed' });
+    }
+
+    return reply.send({ message: `Repaired: ${repairs.join(', ')}. Run a site build in chat to populate content.` });
+  });
+
+  // Preview a site — returns HTML, never JSON errors (shows "building" page on failure)
   app.get('/sites/:siteId/preview', async (req, reply) => {
     const { siteId } = req.params as { siteId: string };
     const filePath = path.join(DIST_SITES, siteId, 'index.html');
+
+    // Try serving cached build first
     try {
       const html = await fs.readFile(filePath, 'utf-8');
       return reply.type('text/html').send(html);
     } catch {
-      // Not built yet — build it now
-      try {
-        await rebuildSite(siteId);
-        const html = await fs.readFile(filePath, 'utf-8');
-        return reply.type('text/html').send(html);
-      } catch (err) {
-        return reply.status(404).send({ error: (err as Error).message });
-      }
+      // Not built yet — try building now
+    }
+
+    try {
+      await rebuildSite(siteId);
+      const html = await fs.readFile(filePath, 'utf-8');
+      return reply.type('text/html').send(html);
+    } catch (err) {
+      app.log.error({ siteId, err }, 'Preview build failed');
+      // Always return HTML — never a JSON error to a browser
+      return reply.type('text/html').send(BUILDING_HTML);
     }
   });
 };
