@@ -1,6 +1,6 @@
 import type { FastifyPluginAsync } from 'fastify';
 import { supabase } from '../../services/supabase/client.js';
-import { getSchedule } from '../../services/pushpress/client.js';
+import { getSchedule, getClasses, getClassTypes } from '../../services/pushpress/client.js';
 import type { ScheduleClass } from '../../services/pushpress/types.js';
 import type { SiteConfig } from '../../services/supabase/types.js';
 
@@ -57,6 +57,39 @@ const scheduleRoute: FastifyPluginAsync = async (app) => {
     const { siteId } = req.params as { siteId: string };
     cache.delete(siteId);
     return reply.send({ ok: true });
+  });
+
+  // Debug: returns raw PushPress API response so we can see what's coming back
+  app.get('/sites/:siteId/schedule/debug', async (req, reply) => {
+    const { siteId } = req.params as { siteId: string };
+    const db = supabase as ReturnType<typeof import('@supabase/supabase-js').createClient>;
+    const { data: config } = await db
+      .from('site_config')
+      .select('pp_api_key, pp_company_id')
+      .eq('site_id', siteId)
+      .single() as { data: Pick<SiteConfig, 'pp_api_key' | 'pp_company_id'> | null };
+
+    if (!config?.pp_api_key || !config.pp_company_id) {
+      return reply.send({ error: 'No PP credentials', config });
+    }
+
+    const now = Math.floor(Date.now() / 1000);
+    try {
+      const [rawClasses, rawTypes] = await Promise.all([
+        getClasses(config.pp_api_key, config.pp_company_id, { startsAfter: now, limit: 10 }),
+        getClassTypes(config.pp_api_key, config.pp_company_id),
+      ]);
+      return reply.send({
+        nowUnix: now,
+        nowIso: new Date(now * 1000).toISOString(),
+        classCount: rawClasses.length,
+        typeCount: rawTypes.length,
+        firstClass: rawClasses[0] ?? null,
+        firstType: rawTypes[0] ?? null,
+      });
+    } catch (err) {
+      return reply.send({ error: err instanceof Error ? err.message : String(err) });
+    }
   });
 };
 
