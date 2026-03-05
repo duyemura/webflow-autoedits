@@ -228,7 +228,8 @@
       <div class="pp-schedule"
            id="pp-schedule"
            data-site-id="{{../config.site_id}}"
-           data-booking-url="{{../config.booking_url}}">
+           data-booking-url="{{../config.booking_url}}"
+           data-phone="{{../config.phone}}">
         <div class="pp-sched__skeleton">
           <div class="pp-sk-card"></div><div class="pp-sk-card"></div><div class="pp-sk-card"></div>
         </div>
@@ -269,20 +270,22 @@
     if (!root) return;
     const siteId = root.dataset.siteId;
     const bookingUrl = root.dataset.bookingUrl || '';
+    const phone = root.dataset.phone || '';
+    const contactLine = phone ? ' Give us a call at <a href="tel:' + phone + '">' + phone + '</a>.' : '';
 
     fetch('/api/sites/' + siteId + '/schedule')
       .then(function (r) { return r.json(); })
       .then(function (data) {
         if (!data.classes || data.classes.length === 0) {
           root.innerHTML = data.configured === false
-            ? '<p class="pp-sched__empty">Schedule not yet connected. Ask us about class times!</p>'
-            : '<p class="pp-sched__empty">No classes scheduled in the next 7 days.</p>';
+            ? '<p class="pp-sched__empty">Live class booking coming soon.' + contactLine + ' Check the times below.</p>'
+            : '<p class="pp-sched__empty">No classes scheduled in the next 7 days.' + contactLine + '</p>';
           return;
         }
         renderSchedule(data.classes);
       })
       .catch(function () {
-        root.innerHTML = '<p class="pp-sched__empty">Schedule temporarily unavailable. Call us for class times.</p>';
+        root.innerHTML = '<p class="pp-sched__empty">Class schedule temporarily unavailable.' + contactLine + '</p>';
       });
 
     function renderSchedule(classes) {

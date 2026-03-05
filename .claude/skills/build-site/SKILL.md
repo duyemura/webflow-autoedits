@@ -37,6 +37,7 @@ From this, extract:
 - `CITY` — config.city
 - `BOOKING_URL` — config.booking_url (used in every CTA)
 - `SCHEDULE_URL` — config.schedule_embed_url (used in schedule page)
+- `PP_CONNECTED` — true if both `pp_api_key` and `pp_company_id` are non-null (live schedule widget will show real classes)
 - `EXISTING_PAGES` — list of slugs already built (skip those)
 - `EXISTING_PROGRAMS` — reuse on programs page
 
@@ -146,29 +147,38 @@ Create nav_item: label='Coaches', url='/coaches', order=3, is_cta=false
 
 ### Page 4: Schedule (`/schedule`)
 
+The schedule page uses progressive enhancement:
+- **Always**: a `section_type: "schedule"` live widget (shows real PP classes when connected, or a tasteful "call us" fallback if not)
+- **Always**: static highlights showing general time blocks (context that's useful even when PP is live)
+- **Always**: contact section for hours from site_config
+- **If PP connected**: widget auto-shows live classes — no extra steps needed
+
 ```
 Create a page: slug='schedule', title='Class Schedule', hero_headline='Find a Time That Works for You', hero_subheading='Classes 6 days a week. If you can find 45 minutes, we have a class for you.'
-[If schedule_embed_url exists, set hero_cta_text='View Full Schedule', hero_cta_url=SCHEDULE_URL]
-[If not, set hero_cta_text='Book a Class', hero_cta_url=BOOKING_URL]
+[If schedule_embed_url or PP_CONNECTED, set hero_cta_text='Book a Class', hero_cta_url=BOOKING_URL]
+[If neither, set hero_cta_text='Contact Us to Reserve', hero_cta_url='/contact']
 
 Then create these sections for page_slug='schedule':
 
-Section 1 — type: highlights, heading: 'When We Run Classes', order: 0, items:
-  - title: 'Early Mornings — 5:30am & 6:30am', short_body: 'For the ones who need to get it done before the day starts.'
+Section 1 — type: schedule, heading: 'This Week\'s Classes', order: 0
+[No items — this is the live PushPress widget. If PP is connected it shows real classes.
+ If not connected yet, it shows a graceful fallback. Always include this section.]
+
+Section 2 — type: highlights, heading: 'When We Run Classes', order: 1, items:
+  - title: 'Early Mornings — 5:30 & 6:30am', short_body: 'For the ones who need to get it done before the day starts.'
   - title: 'Lunch Hour — 12:00pm', short_body: '45-minute format. In, out, back to work.'
-  - title: 'Evenings — 5:30pm, 6:30pm & 7:30pm', short_body: 'High energy. Great for burning off the day.'
+  - title: 'Evenings — 5:30, 6:30 & 7:30pm', short_body: 'High energy. Great for burning off the day.'
   - title: 'Saturday Community — 9:00am', short_body: 'Open to all levels. The most fun class of the week.'
 
-Section 2 — type: contact, heading: 'Full Weekly Hours', order: 1
-[No items needed — pulls from site_config automatically]
-
-[If schedule_embed_url exists:]
-Section 3 — type: embed, heading: 'Book a Class', order: 2, config: { "code": "<a href='SCHEDULE_URL' target='_blank' class='btn btn--primary' style='display:inline-block;padding:1rem 2rem;background:var(--color-primary);color:#fff;border-radius:4px;font-weight:600;text-decoration:none;'>View Full Schedule & Book →</a>" }
+Section 3 — type: contact, heading: 'Gym Hours', order: 2
+[No items — pulls from site_config automatically]
 
 Section 4 — type: cta, heading: 'Ready to reserve your spot?', order: 3
 
 Create nav_item: label='Schedule', url='/schedule', order=4, is_cta=false
 ```
+
+[If PP_CONNECTED: after building this page, call test_pushpress_connection to verify the widget will show live data]
 
 ---
 
@@ -336,11 +346,16 @@ Pages built:
 
 Nav items added: 7 (Free Trial as primary CTA button)
 
+Schedule status:
+  [If PP_CONNECTED]:  ✓ PushPress connected — /schedule shows live classes
+  [If not connected]: ○ /schedule shows static times — connect PushPress to upgrade:
+                        /sync-schedule $ARGUMENTS[0] [api-key] [company-id]
+
 ⚠️  Things to fill in before going live:
   - Coach bios on /about and /coaches (placeholders added)
   - Parking details on /contact
   - Real membership prices on /pricing
-  - Class times on /schedule (default placeholders added)
+  - Update class time highlights on /schedule with your actual hours
   [If no booking_url]: Add a booking_url to site_config
 
 Preview: https://[render-url]/api/sites/$ARGUMENTS[0]/preview
