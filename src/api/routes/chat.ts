@@ -40,10 +40,11 @@ GLOBAL SITE SETTINGS (site_config table — one row per site):
 - "PushPress API key" → site_config, field: pp_api_key
 - "PushPress company ID" / "company ID" → site_config, field: pp_company_id
 
-LIVE SCHEDULE (PushPress integration):
-- "connect PushPress" / "show live schedule" → update_site_config with pp_api_key + pp_company_id, then ensure a section_type "schedule" exists on the schedule page, then rebuild_site
-- section_type "schedule" renders a live JS widget that auto-fetches classes from PushPress — no rebuild needed when classes change
-- After connecting, the schedule page shows real classes color-coded by class type
+LIVE SCHEDULE:
+- "add schedule" / "show live schedule" / "connect PushPress" → ask the user for their schedule embed URL or booking page URL, then update_site_config with schedule_embed_url, then ensure a section_type "schedule" exists on the schedule page, then rebuild_site
+- schedule_embed_url: the URL to embed in an iframe — PushPress provides this (e.g. https://app.pushpress.com/...), Mindbody, Pike13, etc. also provide embed URLs
+- If the user only has a booking URL (not an embed URL), save it as booking_url — the schedule page will show a "Book a Class" button
+- section_type "schedule" renders an iframe if schedule_embed_url is set, otherwise shows a "coming soon" placeholder with a Book button
 
 SECTION HEADINGS (sections table — each section on the page has a row):
 - "why us heading" / "highlights section title" → sections table, section_type: "highlights", field: heading
