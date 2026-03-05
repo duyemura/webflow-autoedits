@@ -267,37 +267,59 @@ const sitesRoute: FastifyPluginAsync = async (app) => {
     return reply.send({ message: `Repaired: ${repairs.join(', ')}. Run a site build in chat to populate content.` });
   });
 
-  // Preview a site — returns HTML, never JSON errors (shows "building" page on failure)
-  app.get('/sites/:siteId/preview', async (req, reply) => {
-    const { siteId } = req.params as { siteId: string };
-    const filePath = path.join(DIST_SITES, siteId, 'index.html');
-
+  // Preview a site — serves any page, rewrites internal links to stay in preview context
+  // Matches /sites/:siteId/preview and /sites/:siteId/preview/*
+  const servePreview = async (req: import('fastify').FastifyRequest, reply: import('fastify').FastifyReply, siteId: string, pagePath: string) => {
     const noCache = () => {
       reply.header('Cache-Control', 'no-cache, no-store, must-revalidate');
       reply.header('Pragma', 'no-cache');
       reply.header('Expires', '0');
     };
 
-    // Try serving cached build first
-    try {
+    // Resolve file path: "home" or "" → index.html, "schedule" → schedule/index.html
+    const slug = pagePath.replace(/^\//, '').replace(/\/$/, '') || 'home';
+    const fileDir = slug === 'home'
+      ? path.join(DIST_SITES, siteId)
+      : path.join(DIST_SITES, siteId, ...slug.split('/'));
+    const filePath = path.join(fileDir, 'index.html');
+
+    const rewriteLinks = (html: string) =>
+      // Rewrite root-relative internal links so they stay in the preview context
+      html.replace(/href="(\/(?!api\/)[^"]*?)"/g, (_, href) => {
+        const slug2 = href === '/' ? '' : href.replace(/^\//, '');
+        return `href="/api/sites/${siteId}/preview${slug2 ? '/' + slug2 : ''}"`;
+      });
+
+    const tryServe = async () => {
       const html = await fs.readFile(filePath, 'utf-8');
       noCache();
-      return reply.type('text/html').send(html);
+      return reply.type('text/html').send(rewriteLinks(html));
+    };
+
+    try {
+      return await tryServe();
     } catch {
-      // Not built yet — try building now
+      // Not built yet — try building
     }
 
     try {
       await rebuildSite(siteId);
-      const html = await fs.readFile(filePath, 'utf-8');
-      noCache();
-      return reply.type('text/html').send(html);
+      return await tryServe();
     } catch (err) {
       app.log.error({ siteId, err }, 'Preview build failed');
-      // Always return HTML — never a JSON error to a browser
       noCache();
       return reply.type('text/html').send(BUILDING_HTML);
     }
+  };
+
+  app.get('/sites/:siteId/preview', async (req, reply) => {
+    const { siteId } = req.params as { siteId: string };
+    return servePreview(req, reply, siteId, '');
+  });
+
+  app.get('/sites/:siteId/preview/*', async (req, reply) => {
+    const { siteId, '*': pagePath } = req.params as { siteId: string; '*': string };
+    return servePreview(req, reply, siteId, pagePath);
   });
 };
 
