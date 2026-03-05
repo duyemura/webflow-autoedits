@@ -31,11 +31,29 @@ async function fetchSite(siteId: string): Promise<Site> {
 }
 
 function buildMessage(scrapeSummary?: string): string {
-  const base = "Build a complete gym website — all standard pages: programs, about, coaches, schedule, pricing, contact, and a free trial landing page. Build all sections with strong conversion-focused copy. After all pages are created, call rebuild_site once.";
+  const base = `Build a complete gym website. Create these pages in order: home, programs, about, coaches, schedule, pricing, contact, free-trial.
+
+For EVERY page:
+1. Call create_page with a strong hero_headline and hero_subheading
+2. Create sections on the page using create_content (table: sections)
+3. For EVERY section, immediately create its items using create_content (table: items) — never leave a section with zero items
+
+Required items per section type:
+- highlights (why us): exactly 4 items — each needs title + short_body
+- programs: 3–6 items — each needs title + short_body + body
+- steps (getting started): exactly 3 items — each needs title + body
+- features (amenities): 3–4 items — each needs title + short_body
+- faq: 5–6 items — each needs title (question) + body (answer)
+- coaches: 3–5 items — each needs title (name) + subtitle (role) + body (bio)
+- testimonials: 3 items — each needs body (quote) + subtitle (name + gym tenure)
+
+Write specific, confident copy — not generic placeholders. Every item must have real content.
+Add nav_items linking all pages. Call rebuild_site once at the very end.`;
+
   if (scrapeSummary?.trim()) {
-    return `${base}\n\nHere's content from their existing website — use it to write specific, real copy instead of placeholders:\n\n${scrapeSummary}`;
+    return `${base}\n\nUse this content from their existing website for real copy:\n\n${scrapeSummary}`;
   }
-  return `${base} Use the gym info already in site_config.`;
+  return `${base}\n\nUse the gym info already in site_config.`;
 }
 
 // Friendly display names for tool calls

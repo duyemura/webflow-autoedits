@@ -59,7 +59,15 @@ CONTENT CARDS (items table — programs, highlights, steps, features, FAQs):
 - "step" / "onboarding step" → items, type: "step"
 - "feature" / "amenity" → items, type: "feature"
 - "FAQ" / "question and answer" → items, type: "faq", fields: title (question), body (answer)
+- "coach" / "staff member" → items, type: "coach"
+- "testimonial" / "review" → items, type: "testimonial"
 - Card fields: title, subtitle, short_body (short description), body (long description), image_url, cta_text, cta_url
+
+CRITICAL RULE — sections must never be empty:
+Every section you create MUST have items created immediately after. A section with no items
+renders as a blank area on the page. Minimum counts:
+  highlights: 4 items | programs: 3+ items | steps: 3 items
+  features: 3+ items | faq: 5+ items | coaches: 2+ items | testimonials: 3 items
 
 NAVIGATION (nav_items table):
 - "nav link" / "menu item" → nav_items, fields: label, url
