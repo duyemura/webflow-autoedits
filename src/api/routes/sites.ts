@@ -246,9 +246,16 @@ const sitesRoute: FastifyPluginAsync = async (app) => {
     const { siteId } = req.params as { siteId: string };
     const filePath = path.join(DIST_SITES, siteId, 'index.html');
 
+    const noCache = () => {
+      reply.header('Cache-Control', 'no-cache, no-store, must-revalidate');
+      reply.header('Pragma', 'no-cache');
+      reply.header('Expires', '0');
+    };
+
     // Try serving cached build first
     try {
       const html = await fs.readFile(filePath, 'utf-8');
+      noCache();
       return reply.type('text/html').send(html);
     } catch {
       // Not built yet — try building now
@@ -257,10 +264,12 @@ const sitesRoute: FastifyPluginAsync = async (app) => {
     try {
       await rebuildSite(siteId);
       const html = await fs.readFile(filePath, 'utf-8');
+      noCache();
       return reply.type('text/html').send(html);
     } catch (err) {
       app.log.error({ siteId, err }, 'Preview build failed');
       // Always return HTML — never a JSON error to a browser
+      noCache();
       return reply.type('text/html').send(BUILDING_HTML);
     }
   });

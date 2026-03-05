@@ -61,6 +61,9 @@ export async function buildApp() {
 
     try {
       const html = await fs.readFile(filePath, 'utf-8');
+      reply.header('Cache-Control', 'no-cache, no-store, must-revalidate');
+      reply.header('Pragma', 'no-cache');
+      reply.header('Expires', '0');
       return reply.type('text/html').send(html);
     } catch {
       // Page not built yet — trigger a build? For now return 404

@@ -92,13 +92,13 @@ async function fetchSiteData(siteId: string, pageSlug: string) {
 }
 
 // ── Build a single page ─────────────────────────────────────────
-async function buildPage(siteId: string, templateSlug: string, pageSlug: string): Promise<string> {
+async function buildPage(siteId: string, templateSlug: string, pageSlug: string, buildVersion: number): Promise<string> {
   const data = await fetchSiteData(siteId, pageSlug);
   // Pick template file: landing pages get landing.hbs, homepage gets home.hbs, others fall back to page.hbs
   const page = data.page as Page & { is_landing?: boolean };
   const templateFile = page.is_landing ? 'landing' : pageSlug === 'home' ? 'home' : pageSlug;
   const template = await loadTemplate(templateSlug, templateFile);
-  return template({ ...data, year: new Date().getFullYear() });
+  return template({ ...data, year: new Date().getFullYear(), buildVersion });
 }
 
 // ── Main: rebuild all pages for a site ─────────────────────────
@@ -125,9 +125,10 @@ export async function rebuildSite(siteId: string): Promise<{ pagesBuilt: number;
   const outDir = path.join(DIST_DIR, siteId);
   await fs.mkdir(outDir, { recursive: true });
 
+  const buildVersion = Date.now();
   let pagesBuilt = 0;
   for (const page of pages ?? []) {
-    const html = await buildPage(siteId, templateSlug, page.slug);
+    const html = await buildPage(siteId, templateSlug, page.slug, buildVersion);
     const pageDir = page.slug === 'home'
       ? outDir
       : path.join(outDir, ...page.slug.split('/'));
