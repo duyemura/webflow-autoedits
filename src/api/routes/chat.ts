@@ -390,11 +390,14 @@ const chatRoute: FastifyPluginAsync = async (app) => {
       input_schema: { type: 'object', properties: {} },
     }, async () => {
       const buildResult = await rebuildSite(siteId);
-      const testReport = await runSiteTests(siteId);
-      return [
-        `Site rebuilt: ${buildResult.pagesBuilt} page(s) in ${buildResult.buildTimeMs}ms`,
-        testReport.summary,
-      ].join('\n\n');
+      const lines = [`Site rebuilt: ${buildResult.pagesBuilt} page(s) in ${buildResult.buildTimeMs}ms`];
+      try {
+        const testReport = await runSiteTests(siteId);
+        lines.push(testReport.summary);
+      } catch (err) {
+        lines.push(`Tests skipped: ${err instanceof Error ? err.message : String(err)}`);
+      }
+      return lines.join('\n\n');
     });
 
     // Set up SSE stream
