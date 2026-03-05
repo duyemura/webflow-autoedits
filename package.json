@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "concurrently \"tsx watch src/app-server.ts\" \"cd spa && pnpm dev\"",
     "dev:server": "tsx watch src/app-server.ts",
-    "build": "tsc && cd spa && pnpm build",
+    "build": "tsc && cp -r src/templates dist/templates && cd spa && pnpm build",
     "start": "node dist/app-server.js",
     "test:system": "vitest run",
     "test:site": "tsx scripts/test-site.ts"
