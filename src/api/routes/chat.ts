@@ -36,6 +36,13 @@ GLOBAL SITE SETTINGS (site_config table — one row per site):
 - "body font" / "text font" → site_config, field: font_body
 - "booking link" / "discovery call link" → site_config, field: booking_url
 - "Instagram" / "Facebook" / "TikTok" / "YouTube" → site_config, fields: instagram_url etc.
+- "PushPress API key" → site_config, field: pp_api_key
+- "PushPress company ID" / "company ID" → site_config, field: pp_company_id
+
+LIVE SCHEDULE (PushPress integration):
+- "connect PushPress" / "show live schedule" → update_site_config with pp_api_key + pp_company_id, then ensure a section_type "schedule" exists on the schedule page, then rebuild_site
+- section_type "schedule" renders a live JS widget that auto-fetches classes from PushPress — no rebuild needed when classes change
+- After connecting, the schedule page shows real classes color-coded by class type
 
 SECTION HEADINGS (sections table — each section on the page has a row):
 - "why us heading" / "highlights section title" → sections table, section_type: "highlights", field: heading
@@ -289,6 +296,35 @@ const chatRoute: FastifyPluginAsync = async (app) => {
         .eq('id', siteId);
       if (error) throw new Error(error.message);
       return `Template updated to ${template_id as string}`;
+    });
+
+    runner.register({
+      name: 'test_pushpress_connection',
+      description: 'Test that PushPress credentials are working by fetching the next few classes. Use after saving pp_api_key and pp_company_id.',
+      input_schema: { type: 'object', properties: {} },
+    }, async () => {
+      const db = supabase as ReturnType<typeof import('@supabase/supabase-js').createClient>;
+      const { data: config } = await db
+        .from('site_config')
+        .select('pp_api_key, pp_company_id, primary_color')
+        .eq('site_id', siteId)
+        .single() as { data: { pp_api_key: string | null; pp_company_id: string | null; primary_color: string | null } | null };
+
+      if (!config?.pp_api_key || !config.pp_company_id) {
+        return 'No PushPress credentials found. Save pp_api_key and pp_company_id to site_config first.';
+      }
+
+      const res = await fetch(`http://localhost:${process.env.PORT ?? 3200}/api/sites/${siteId}/schedule/refresh`, { method: 'POST' });
+      if (!res.ok) return `Cache refresh failed: ${res.status}`;
+
+      const schedRes = await fetch(`http://localhost:${process.env.PORT ?? 3200}/api/sites/${siteId}/schedule`);
+      const data = await schedRes.json() as { classes?: { title: string; timeStart: string; date: string }[]; error?: string; configured?: boolean };
+
+      if (data.configured === false) return 'PushPress credentials not set in site_config.';
+      if (data.error) return `PushPress error: ${data.error}`;
+      const count = data.classes?.length ?? 0;
+      const preview = data.classes?.slice(0, 3).map(c => `${c.date} ${c.timeStart} — ${c.title}`).join('\n') ?? '';
+      return `Connection successful. Found ${count} classes in the next 7 days.\n${preview}`;
     });
 
     runner.register({

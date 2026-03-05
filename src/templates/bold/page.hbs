@@ -125,6 +125,29 @@
     .faq-item__answer { display: none; padding: 0 1.5rem 1.25rem; color: #555; font-size: .95rem; line-height: 1.7; }
     .faq-item.is-open .faq-item__answer { display: block; }
 
+    /* ── PushPress Schedule Widget ── */
+    .pp-schedule { font-family: var(--font-body); }
+    .pp-sched__days { display: flex; gap: .5rem; flex-wrap: wrap; margin-bottom: 2rem; }
+    .pp-sched__day-btn { padding: .45rem 1rem; border-radius: 999px; border: 1.5px solid #e0e0e0; background: #fff; font-size: .85rem; font-weight: 500; color: #555; cursor: pointer; transition: all .15s; white-space: nowrap; }
+    .pp-sched__day-btn:hover { border-color: var(--color-primary); color: var(--color-primary); }
+    .pp-sched__day-btn.is-active { background: var(--color-primary); border-color: var(--color-primary); color: #fff; font-weight: 600; }
+    .pp-sched__day-label { font-family: var(--font-heading); font-size: 1.1rem; letter-spacing: .04em; color: var(--color-secondary); margin-bottom: 1.25rem; }
+    .pp-sched__list { display: flex; flex-direction: column; gap: .75rem; }
+    .pp-sched__card { display: flex; align-items: center; gap: 1.25rem; background: #fff; border-radius: 8px; padding: 1.25rem 1.5rem; box-shadow: 0 1px 8px rgba(0,0,0,.06); border-left: 4px solid #ccc; transition: transform .15s, box-shadow .15s; }
+    .pp-sched__card:hover { transform: translateY(-2px); box-shadow: 0 4px 16px rgba(0,0,0,.1); }
+    .pp-sched__time { min-width: 80px; }
+    .pp-sched__time-start { font-weight: 700; font-size: 1.05rem; color: var(--color-secondary); line-height: 1.2; }
+    .pp-sched__time-end { font-size: .78rem; color: #999; }
+    .pp-sched__info { flex: 1; min-width: 0; }
+    .pp-sched__class-name { font-family: var(--font-heading); font-size: 1.1rem; letter-spacing: .03em; color: var(--color-secondary); margin-bottom: .2rem; }
+    .pp-sched__meta { font-size: .82rem; color: #888; display: flex; gap: .75rem; flex-wrap: wrap; }
+    .pp-sched__book { flex-shrink: 0; }
+    .pp-sched__book a { display: inline-block; padding: .45rem 1rem; background: var(--color-primary); color: #fff; border-radius: 4px; font-size: .82rem; font-weight: 600; transition: opacity .2s; }
+    .pp-sched__book a:hover { opacity: .85; }
+    .pp-sched__empty { padding: 2rem; text-align: center; color: #aaa; font-size: .95rem; background: #f9f9f9; border-radius: 8px; }
+    .pp-sched__skeleton .pp-sk-card { height: 80px; border-radius: 8px; background: linear-gradient(90deg, #f0f0f0 25%, #e8e8e8 50%, #f0f0f0 75%); background-size: 200% 100%; animation: pp-shimmer 1.4s infinite; margin-bottom: .75rem; }
+    @keyframes pp-shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+
     /* ── CTA Band ── */
     .cta-band { background: var(--color-primary); padding: 4rem 1.5rem; text-align: center; }
     .cta-band__heading { font-family: var(--font-heading); font-size: clamp(1.8rem, 4vw, 3rem); color: #fff; letter-spacing: .04em; margin-bottom: 1.75rem; }
@@ -343,11 +366,29 @@
   </section>
   {{/eq}}
 
+  {{!-- SCHEDULE (live PushPress widget) --}}
+  {{#eq section_type "schedule"}}
+  <section class="section" data-section="schedule">
+    <div class="section__inner">
+      {{#if heading}}<div class="section__header"><h2 class="section__heading">{{heading}}</h2>{{#if subheading}}<p class="section__subheading">{{subheading}}</p>{{/if}}</div>{{/if}}
+      <div class="pp-schedule"
+           id="pp-schedule"
+           data-site-id="{{../config.site_id}}"
+           data-booking-url="{{../config.booking_url}}">
+        <div class="pp-sched__skeleton">
+          <div class="pp-sk-card"></div><div class="pp-sk-card"></div><div class="pp-sk-card"></div>
+        </div>
+      </div>
+    </div>
+  </section>
+  {{/eq}}
+
 {{/each}}
 
 {{> footer}}
 
 <script>
+  // FAQ accordion
   document.querySelectorAll('.faq-item__question').forEach(btn => {
     btn.addEventListener('click', () => {
       const item = btn.closest('.faq-item');
@@ -356,6 +397,82 @@
       if (!isOpen) item.classList.add('is-open');
     });
   });
+
+  // PushPress schedule widget
+  (function () {
+    const root = document.getElementById('pp-schedule');
+    if (!root) return;
+    const siteId = root.dataset.siteId;
+    const bookingUrl = root.dataset.bookingUrl || '';
+
+    fetch('/api/sites/' + siteId + '/schedule')
+      .then(function (r) { return r.json(); })
+      .then(function (data) {
+        if (!data.classes || data.classes.length === 0) {
+          root.innerHTML = data.configured === false
+            ? '<p class="pp-sched__empty">Schedule not yet connected. Ask us about class times!</p>'
+            : '<p class="pp-sched__empty">No classes scheduled in the next 7 days.</p>';
+          return;
+        }
+        renderSchedule(data.classes);
+      })
+      .catch(function () {
+        root.innerHTML = '<p class="pp-sched__empty">Schedule temporarily unavailable. Call us for class times.</p>';
+      });
+
+    function renderSchedule(classes) {
+      // Group by date
+      var days = {};
+      var dayOrder = [];
+      classes.forEach(function (c) {
+        if (!days[c.date]) { days[c.date] = { label: c.dayLabel, classes: [] }; dayOrder.push(c.date); }
+        days[c.date].classes.push(c);
+      });
+
+      var activeDate = dayOrder[0];
+
+      function renderDayTabs() {
+        return '<div class="pp-sched__days">' +
+          dayOrder.map(function (d) {
+            var day = days[d];
+            var label = day.label.split(',')[0]; // "Mon"
+            var num = day.label.split(' ').pop();  // "6"
+            var active = d === activeDate ? ' is-active' : '';
+            return '<button class="pp-sched__day-btn' + active + '" data-date="' + d + '">' + label + ' ' + num + '</button>';
+          }).join('') +
+        '</div>';
+      }
+
+      function renderClasses(date) {
+        var day = days[date];
+        if (!day) return '';
+        var cards = day.classes.map(function (c) {
+          var bookBtn = bookingUrl
+            ? '<div class="pp-sched__book"><a href="' + bookingUrl + '" target="_blank" rel="noopener">Book →</a></div>'
+            : '';
+          var meta = [c.durationMin + ' min', c.location].filter(Boolean).join(' · ');
+          return '<div class="pp-sched__card" style="border-left-color:' + c.typeColor + '">' +
+            '<div class="pp-sched__time"><div class="pp-sched__time-start">' + c.timeStart + '</div><div class="pp-sched__time-end">' + c.timeEnd + '</div></div>' +
+            '<div class="pp-sched__info"><div class="pp-sched__class-name">' + c.title + '</div><div class="pp-sched__meta">' + meta + '</div></div>' +
+            bookBtn +
+          '</div>';
+        }).join('');
+        return '<div class="pp-sched__day-label">' + day.label + '</div><div class="pp-sched__list">' + cards + '</div>';
+      }
+
+      function render() {
+        root.innerHTML = renderDayTabs() + renderClasses(activeDate);
+        root.querySelectorAll('.pp-sched__day-btn').forEach(function (btn) {
+          btn.addEventListener('click', function () {
+            activeDate = btn.dataset.date;
+            render();
+          });
+        });
+      }
+
+      render();
+    }
+  })();
 </script>
 
 </body>

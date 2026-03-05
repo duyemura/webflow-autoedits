@@ -66,6 +66,8 @@ export interface SiteConfig {
   booking_url: string | null;
   schedule_embed_url: string | null;
   social_proof_embed: string | null;
+  pp_api_key: string | null;
+  pp_company_id: string | null;
 }
 
 export interface NavItem {
