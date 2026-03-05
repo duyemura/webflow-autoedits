@@ -73,6 +73,10 @@ NAVIGATION (nav_items table):
 - "nav link" / "menu item" → nav_items, fields: label, url
 - "nav CTA button" / "header button" → nav_items where is_cta = true, field: label + url
 
+SCRAPING:
+- "scan this url" / "pull colors from" / "import from" / "use their website" / any URL mention → call scrape_url first, then apply what you find
+- After scraping: update primary_color, secondary_color, font_heading, font_body, logo_url in site_config with what was found, then rebuild_site
+
 TEMPLATE:
 - "change template" / "switch template" / "use the rail layout" / "switch to bold" → use list_templates then switch_template
 
@@ -325,6 +329,30 @@ const chatRoute: FastifyPluginAsync = async (app) => {
         .eq('id', siteId);
       if (error) throw new Error(error.message);
       return `Template updated to ${template_id as string}`;
+    });
+
+    runner.register({
+      name: 'scrape_url',
+      description: 'Fetch any public URL and extract gym info: colors, fonts, logo, programs, coaches, hours, social links, and more. Use this whenever the user asks you to pull colors or content from a website URL.',
+      input_schema: {
+        type: 'object',
+        properties: {
+          url: { type: 'string', description: 'The URL to scrape, e.g. "https://theirgym.com"' },
+        },
+        required: ['url'],
+      },
+    }, async ({ url }) => {
+      const res = await fetch(`http://localhost:${process.env.PORT ?? 3200}/api/scrape`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ url }),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({})) as { error?: string };
+        return `Scrape failed: ${err.error ?? res.status}`;
+      }
+      const data = await res.json();
+      return JSON.stringify(data, null, 2);
     });
 
     runner.register({
