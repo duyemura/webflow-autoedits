@@ -1,49 +1,20 @@
-import { logger } from "./logger.js";
+import { logger } from './logger.js';
 
-interface EnvConfig {
-  ANTHROPIC_API_KEY: string;
-  LINEAR_API_KEY: string;
-  LINEAR_WEBHOOK_SECRET: string;
-  WEBFLOW_API_TOKEN: string;
-  PORT: number;
-  NODE_ENV: string;
-  LOG_LEVEL: string;
-  MAX_COST_PER_RUN: number;
-}
-
-/**
- * Validate required environment variables on startup.
- * Fails fast with a clear message if anything critical is missing.
- */
-export function validateEnv(): EnvConfig {
-  const missing: string[] = [];
-
-  const required = ["ANTHROPIC_API_KEY", "LINEAR_API_KEY"] as const;
-  for (const key of required) {
-    if (!process.env[key]) missing.push(key);
-  }
-
-  const warned: string[] = [];
-  if (!process.env.LINEAR_WEBHOOK_SECRET) warned.push("LINEAR_WEBHOOK_SECRET (webhook signature verification disabled)");
+export function validateEnv() {
+  const required = ['ANTHROPIC_API_KEY', 'SUPABASE_URL', 'SUPABASE_SECRET_KEY'] as const;
+  const missing = required.filter((k) => !process.env[k]);
 
   if (missing.length > 0) {
-    const msg = `Missing required environment variables: ${missing.join(", ")}. Copy .env.example to .env and fill in values.`;
+    const msg = `Missing required environment variables: ${missing.join(', ')}`;
     logger.fatal(msg);
     throw new Error(msg);
   }
 
-  if (warned.length > 0) {
-    logger.warn(`Optional env vars not set (some features will be limited): ${warned.join(", ")}`);
-  }
-
   return {
     ANTHROPIC_API_KEY: process.env.ANTHROPIC_API_KEY!,
-    LINEAR_API_KEY: process.env.LINEAR_API_KEY!,
-    LINEAR_WEBHOOK_SECRET: process.env.LINEAR_WEBHOOK_SECRET || "",
-    WEBFLOW_API_TOKEN: process.env.WEBFLOW_API_TOKEN || "",
-    PORT: parseInt(process.env.PORT || "3100", 10),
-    NODE_ENV: process.env.NODE_ENV || "development",
-    LOG_LEVEL: process.env.LOG_LEVEL || "info",
-    MAX_COST_PER_RUN: parseFloat(process.env.MAX_COST_PER_RUN || "5.0"),
+    SUPABASE_URL: process.env.SUPABASE_URL!,
+    SUPABASE_SECRET_KEY: process.env.SUPABASE_SECRET_KEY!,
+    PORT: parseInt(process.env.PORT ?? '3200', 10),
+    NODE_ENV: process.env.NODE_ENV ?? 'development',
   };
 }

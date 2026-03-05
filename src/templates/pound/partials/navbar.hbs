@@ -1,0 +1,55 @@
+<header class="navbar" id="navbar" data-section="navbar">
+  <div class="navbar__inner">
+    <a href="/" class="navbar__logo" data-content="navbar.logo">
+      {{#if config.logo_url}}
+        <img src="{{config.logo_url}}" alt="{{config.name}}" />
+      {{else}}
+        <span class="navbar__logo-text">{{config.name}}</span>
+      {{/if}}
+    </a>
+
+    <nav class="navbar__nav" data-content="navbar.links">
+      {{#each nav_items}}
+        {{#unless is_cta}}
+          <a href="{{url}}" class="navbar__link">{{label}}</a>
+        {{/unless}}
+      {{/each}}
+    </nav>
+
+    <div class="navbar__ctas">
+      {{#each nav_items}}
+        {{#if is_cta}}
+          <a href="{{url}}" class="btn btn--primary navbar__cta-btn" data-content="navbar.cta">{{label}}</a>
+        {{/if}}
+      {{/each}}
+    </div>
+
+    <button class="navbar__hamburger" aria-label="Open menu" aria-expanded="false">
+      <span></span><span></span><span></span>
+    </button>
+  </div>
+
+  <div class="navbar__mobile" id="mobile-menu" hidden>
+    {{#each nav_items}}
+      <a href="{{url}}" class="navbar__mobile-link {{#if is_cta}}btn btn--primary{{/if}}">{{label}}</a>
+    {{/each}}
+  </div>
+</header>
+
+<script>
+  // Scroll behavior — add .is-scrolled after 60px
+  const navbar = document.getElementById('navbar');
+  window.addEventListener('scroll', () => {
+    navbar.classList.toggle('is-scrolled', window.scrollY > 60);
+  }, { passive: true });
+
+  // Hamburger
+  const ham = navbar.querySelector('.navbar__hamburger');
+  const mob = document.getElementById('mobile-menu');
+  ham.addEventListener('click', () => {
+    const open = !mob.hidden;
+    mob.hidden = open;
+    ham.setAttribute('aria-expanded', String(!open));
+    ham.classList.toggle('is-open', !open);
+  });
+</script>

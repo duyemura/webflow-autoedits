@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>{{page.title}}</title>
+  {{#if page.meta_description}}<meta name="description" content="{{page.meta_description}}" />{{/if}}
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family={{config.font_heading}}:wght@400;700&family={{config.font_body}}:wght@400;500;600&display=swap" rel="stylesheet" />
+
+  <style>
+    /* ── Design Tokens ── */
+    :root {
+      --color-primary:   {{config.primary_color}};
+      --color-secondary: {{config.secondary_color}};
+      --color-accent:    {{config.accent_color}};
+      --color-bg:        {{config.bg_color}};
+      --color-text:      {{config.text_color}};
+      --font-heading:    '{{config.font_heading}}', sans-serif;
+      --font-body:       '{{config.font_body}}', sans-serif;
+      --rail-width: 260px;
+    }
+
+    /* ── Reset ── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+    body { font-family: var(--font-body); color: var(--color-text); background: var(--color-bg); line-height: 1.6; display: flex; min-height: 100vh; }
+    img { display: block; max-width: 100%; }
+    a { color: inherit; text-decoration: none; }
+    ul { list-style: none; }
+
+    /* ── Buttons ── */
+    .btn { display: inline-block; padding: .7rem 1.5rem; border-radius: 4px; font-weight: 600; font-size: .9rem; transition: opacity .2s, transform .1s; cursor: pointer; }
+    .btn:hover { opacity: .88; transform: translateY(-1px); }
+    .btn--primary { background: var(--color-primary); color: #fff; }
+    .btn--secondary { background: transparent; color: #fff; border: 2px solid rgba(255,255,255,.6); }
+
+    /* ── Rail ── */
+    .rail { position: fixed; top: 0; left: 0; width: var(--rail-width); height: 100vh; background: var(--color-secondary); display: flex; flex-direction: column; justify-content: space-between; padding: 2rem 1.5rem; z-index: 100; overflow-y: auto; }
+    .rail__logo { display: block; margin-bottom: 2.5rem; }
+    .rail__logo img { height: 36px; width: auto; }
+    .rail__logo-text { font-family: var(--font-heading); font-size: 1.35rem; color: #fff; letter-spacing: .06em; }
+    .rail__nav { display: flex; flex-direction: column; gap: .25rem; flex: 1; }
+    .rail__link { color: rgba(255,255,255,.7); font-size: .92rem; padding: .55rem .75rem; border-radius: 4px; transition: background .15s, color .15s; }
+    .rail__link:hover { background: rgba(255,255,255,.08); color: #fff; }
+    .rail__cta { display: block; margin-top: 1.75rem; text-align: center; width: 100%; }
+    .rail__bottom { border-top: 1px solid rgba(255,255,255,.1); padding-top: 1.25rem; margin-top: 1.5rem; }
+    .rail__contact { display: flex; flex-direction: column; gap: .3rem; margin-bottom: 1rem; }
+    .rail__contact-line { font-size: .82rem; color: rgba(255,255,255,.5); }
+    .rail__contact-line:hover { color: rgba(255,255,255,.8); }
+    .rail__socials { display: flex; gap: .85rem; }
+    .rail__socials a { color: rgba(255,255,255,.4); transition: color .2s; }
+    .rail__socials a:hover { color: rgba(255,255,255,.85); }
+    .rail__toggle { display: none; position: fixed; top: 1rem; left: 1rem; z-index: 200; background: var(--color-secondary); border: none; color: #fff; font-size: 1.4rem; width: 44px; height: 44px; border-radius: 6px; cursor: pointer; align-items: center; justify-content: center; }
+    @media (max-width: 768px) {
+      .rail { transform: translateX(-100%); transition: transform .25s ease; }
+      .rail.is-open { transform: translateX(0); }
+      .rail__toggle { display: flex; }
+      body { display: block; }
+      .main { margin-left: 0 !important; }
+    }
+
+    /* ── Main content offset ── */
+    .main { margin-left: var(--rail-width); flex: 1; min-width: 0; }
+
+    /* ── Hero ── */
+    .hero { position: relative; min-height: 88vh; display: flex; align-items: flex-end; overflow: hidden; }
+    .hero__bg { position: absolute; inset: 0; background-size: cover; background-position: center; filter: brightness(.4); }
+    .hero__content { position: relative; z-index: 1; padding: 5rem 3rem; max-width: 780px; }
+    .hero__eyebrow { font-size: .8rem; letter-spacing: .18em; text-transform: uppercase; color: var(--color-primary); font-weight: 600; margin-bottom: .85rem; }
+    .hero__headline { font-family: var(--font-heading); font-size: clamp(2.4rem, 5.5vw, 4.5rem); color: #fff; line-height: 1.05; letter-spacing: .02em; max-width: 16ch; margin-bottom: 1.1rem; }
+    .hero__subheading { font-size: clamp(.95rem, 1.8vw, 1.15rem); color: rgba(255,255,255,.8); max-width: 52ch; margin-bottom: 2.25rem; }
+    .hero__ctas { display: flex; gap: .85rem; flex-wrap: wrap; }
+    .hero__scroll { position: absolute; bottom: 2rem; right: 2.5rem; font-size: .75rem; letter-spacing: .12em; text-transform: uppercase; color: rgba(255,255,255,.4); display: flex; align-items: center; gap: .5rem; }
+    .hero__scroll::before { content: ''; display: block; width: 1px; height: 40px; background: rgba(255,255,255,.2); }
+
+    /* ── Section base ── */
+    .section { padding: 4.5rem 3rem; }
+    .section__header { margin-bottom: 2.5rem; }
+    .section__heading { font-family: var(--font-heading); font-size: clamp(1.6rem, 3vw, 2.4rem); letter-spacing: .04em; color: var(--color-secondary); margin-bottom: .4rem; }
+    .section__subheading { font-size: 1rem; color: #777; }
+    .section--dark { background: var(--color-secondary); }
+    .section--dark .section__heading { color: #fff; }
+    .section--dark .section__subheading { color: rgba(255,255,255,.6); }
+    .section--tinted { background: #f5f5f5; }
+
+    /* ── Highlights ── */
+    .highlights__grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 1.5rem; }
+    .highlight-card { padding: 1.75rem; border-top: 3px solid var(--color-primary); background: #fff; box-shadow: 0 1px 8px rgba(0,0,0,.05); }
+    .highlight-card__title { font-family: var(--font-heading); font-size: 1.2rem; letter-spacing: .05em; margin-bottom: .4rem; color: var(--color-secondary); }
+    .highlight-card__body { color: #666; font-size: .92rem; }
+
+    /* ── Programs ── */
+    .programs__grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 1.75rem; }
+    .program-card { border-radius: 6px; overflow: hidden; box-shadow: 0 2px 16px rgba(0,0,0,.08); background: #fff; transition: transform .2s; }
+    .program-card:hover { transform: translateY(-3px); }
+    .program-card__img { width: 100%; height: 200px; object-fit: cover; }
+    .program-card__body { padding: 1.35rem; }
+    .program-card__title { font-family: var(--font-heading); font-size: 1.3rem; letter-spacing: .05em; margin-bottom: .4rem; color: var(--color-secondary); }
+    .program-card__desc { color: #666; font-size: .9rem; margin-bottom: 1rem; }
+    .program-card__link { color: var(--color-primary); font-weight: 600; font-size: .88rem; }
+    .program-card__link:hover { text-decoration: underline; }
+
+    /* ── Steps ── */
+    .steps__list { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 2rem; }
+    .step { position: relative; padding-top: 1rem; }
+    .step__number { font-family: var(--font-heading); font-size: 4.5rem; line-height: 1; color: var(--color-primary); opacity: .12; position: absolute; top: 0; left: 0; }
+    .step__content { position: relative; padding-top: .75rem; }
+    .step__title { font-family: var(--font-heading); font-size: 1.25rem; letter-spacing: .05em; margin-bottom: .4rem; color: #fff; }
+    .step__body { color: rgba(255,255,255,.7); font-size: .9rem; }
+
+    /* ── Features ── */
+    .features__grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1.25rem; }
+    .feature-card { padding: 1.35rem; background: #fff; border-radius: 6px; box-shadow: 0 1px 6px rgba(0,0,0,.05); }
+    .feature-card__title { font-family: var(--font-heading); font-size: 1.05rem; letter-spacing: .04em; margin-bottom: .35rem; color: var(--color-secondary); }
+    .feature-card__body { color: #777; font-size: .88rem; }
+
+    /* ── FAQ ── */
+    .faq__list { max-width: 700px; display: flex; flex-direction: column; gap: .6rem; }
+    .faq-item { border: 1px solid #eaeaea; border-radius: 5px; overflow: hidden; }
+    .faq-item__question { width: 100%; background: #fff; border: none; padding: 1.1rem 1.35rem; text-align: left; font-family: var(--font-body); font-size: .97rem; font-weight: 600; color: var(--color-secondary); cursor: pointer; display: flex; justify-content: space-between; align-items: center; gap: 1rem; }
+    .faq-item__question::after { content: '+'; font-size: 1.3rem; font-weight: 300; flex-shrink: 0; transition: transform .2s; }
+    .faq-item.is-open .faq-item__question::after { transform: rotate(45deg); }
+    .faq-item__answer { display: none; padding: 0 1.35rem 1.1rem; color: #666; font-size: .92rem; line-height: 1.7; }
+    .faq-item.is-open .faq-item__answer { display: block; }
+
+    /* ── CTA Band ── */
+    .cta-band { background: var(--color-primary); padding: 4rem 3rem; }
+    .cta-band__heading { font-family: var(--font-heading); font-size: clamp(1.6rem, 3.5vw, 2.6rem); color: #fff; letter-spacing: .04em; margin-bottom: 1.5rem; max-width: 28ch; }
+    .cta-band .btn--secondary { border-color: rgba(255,255,255,.55); }
+
+    /* ── Footer ── */
+    .footer { background: #111; color: rgba(255,255,255,.35); padding: 1.5rem 3rem; font-size: .8rem; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem; }
+    .footer a { color: rgba(255,255,255,.4); transition: color .2s; }
+    .footer a:hover { color: rgba(255,255,255,.8); }
+  </style>
+</head>
+<body>
+
+{{> rail}}
+
+<div class="main">
+
+  <!-- HERO -->
+  <section class="hero" data-section="hero">
+    <div class="hero__bg" style="background-image: url('{{page.hero_image_url}}')" data-content="hero.image"></div>
+    <div class="hero__content">
+      <p class="hero__eyebrow" data-content="hero.eyebrow">{{config.name}}</p>
+      <h1 class="hero__headline" data-content="hero.headline">{{page.hero_headline}}</h1>
+      <p class="hero__subheading" data-content="hero.subheading">{{page.hero_subheading}}</p>
+      <div class="hero__ctas">
+        {{#if page.hero_cta_text}}
+          <a href="{{page.hero_cta_url}}" class="btn btn--primary" data-content="hero.cta_primary">{{page.hero_cta_text}}</a>
+        {{/if}}
+        {{#if page.hero_secondary_cta_text}}
+          <a href="{{page.hero_secondary_cta_url}}" class="btn btn--secondary" data-content="hero.cta_secondary">{{page.hero_secondary_cta_text}}</a>
+        {{/if}}
+      </div>
+    </div>
+    <div class="hero__scroll">Scroll</div>
+  </section>
+
+  {{#each sections}}
+
+    {{!-- HIGHLIGHTS --}}
+    {{#eq section_type "highlights"}}
+    <section class="section section--tinted" data-section="highlights">
+      {{#if heading}}<div class="section__header"><h2 class="section__heading" data-content="highlights.heading">{{heading}}</h2></div>{{/if}}
+      <div class="highlights__grid" data-content="highlights.items">
+        {{#each items}}
+        <div class="highlight-card">
+          <h3 class="highlight-card__title" data-content="highlight.{{@index}}.title">{{title}}</h3>
+          <p class="highlight-card__body" data-content="highlight.{{@index}}.body">{{short_body}}</p>
+        </div>
+        {{/each}}
+      </div>
+    </section>
+    {{/eq}}
+
+    {{!-- PROGRAMS --}}
+    {{#eq section_type "programs"}}
+    <section class="section" data-section="programs">
+      {{#if heading}}
+      <div class="section__header">
+        <h2 class="section__heading" data-content="programs.heading">{{heading}}</h2>
+        {{#if subheading}}<p class="section__subheading" data-content="programs.subheading">{{subheading}}</p>{{/if}}
+      </div>
+      {{/if}}
+      <div class="programs__grid" data-content="programs.items">
+        {{#each items}}
+        <div class="program-card">
+          {{#if image_url}}<img class="program-card__img" src="{{image_url}}" alt="{{title}}" data-content="program.{{@index}}.image" />{{/if}}
+          <div class="program-card__body">
+            <h3 class="program-card__title" data-content="program.{{@index}}.title">{{title}}</h3>
+            <p class="program-card__desc" data-content="program.{{@index}}.body">{{short_body}}</p>
+            {{#if cta_text}}<a href="{{cta_url}}" class="program-card__link" data-content="program.{{@index}}.cta">{{cta_text}} →</a>{{/if}}
+          </div>
+        </div>
+        {{/each}}
+      </div>
+    </section>
+    {{/eq}}
+
+    {{!-- STEPS --}}
+    {{#eq section_type "steps"}}
+    <section class="section section--dark" data-section="steps">
+      {{#if heading}}
+      <div class="section__header">
+        <h2 class="section__heading" data-content="steps.heading">{{heading}}</h2>
+        {{#if subheading}}<p class="section__subheading" data-content="steps.subheading">{{subheading}}</p>{{/if}}
+      </div>
+      {{/if}}
+      <div class="steps__list" data-content="steps.items">
+        {{#each items}}
+        <div class="step">
+          <div class="step__number">{{#if metadata.step_number}}{{metadata.step_number}}{{else}}{{stepNumber @index}}{{/if}}</div>
+          <div class="step__content">
+            <h3 class="step__title" data-content="step.{{@index}}.title">{{title}}</h3>
+            <p class="step__body" data-content="step.{{@index}}.body">{{short_body}}</p>
+          </div>
+        </div>
+        {{/each}}
+      </div>
+    </section>
+    {{/eq}}
+
+    {{!-- FEATURES --}}
+    {{#eq section_type "features"}}
+    <section class="section section--tinted" data-section="features">
+      {{#if heading}}<div class="section__header"><h2 class="section__heading" data-content="features.heading">{{heading}}</h2></div>{{/if}}
+      <div class="features__grid" data-content="features.items">
+        {{#each items}}
+        <div class="feature-card">
+          <h3 class="feature-card__title" data-content="feature.{{@index}}.title">{{title}}</h3>
+          <p class="feature-card__body" data-content="feature.{{@index}}.body">{{short_body}}</p>
+        </div>
+        {{/each}}
+      </div>
+    </section>
+    {{/eq}}
+
+    {{!-- FAQ --}}
+    {{#eq section_type "faq"}}
+    <section class="section" data-section="faq">
+      {{#if heading}}<div class="section__header"><h2 class="section__heading" data-content="faq.heading">{{heading}}</h2></div>{{/if}}
+      <div class="faq__list" data-content="faq.items">
+        {{#each items}}
+        <div class="faq-item">
+          <button class="faq-item__question" data-content="faq.{{@index}}.question">{{title}}</button>
+          <div class="faq-item__answer" data-content="faq.{{@index}}.answer">{{body}}</div>
+        </div>
+        {{/each}}
+      </div>
+    </section>
+    {{/eq}}
+
+    {{!-- CTA BAND --}}
+    {{#eq section_type "cta"}}
+    <section class="cta-band" data-section="cta">
+      <h2 class="cta-band__heading" data-content="cta.heading">{{heading}}</h2>
+      {{#if ../config.booking_url}}
+        <a href="{{../config.booking_url}}" class="btn btn--secondary" data-content="cta.button">Book a Free Call</a>
+      {{/if}}
+    </section>
+    {{/eq}}
+
+  {{/each}}
+
+  <footer class="footer" data-section="footer">
+    <span>&copy; {{year}} {{config.name}}. All rights reserved.</span>
+    <span data-content="footer.contact">
+      {{#if config.phone}}<a href="tel:{{config.phone}}">{{config.phone}}</a>{{/if}}
+      {{#if config.email}} &middot; <a href="mailto:{{config.email}}">{{config.email}}</a>{{/if}}
+    </span>
+  </footer>
+
+</div><!-- /.main -->
+
+<script>
+  // FAQ accordion
+  document.querySelectorAll('.faq-item__question').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const item = btn.closest('.faq-item');
+      const isOpen = item.classList.contains('is-open');
+      document.querySelectorAll('.faq-item').forEach(i => i.classList.remove('is-open'));
+      if (!isOpen) item.classList.add('is-open');
+    });
+  });
+
+  // Mobile rail toggle
+  const toggle = document.querySelector('.rail__toggle');
+  const rail = document.querySelector('.rail');
+  toggle?.addEventListener('click', () => rail?.classList.toggle('is-open'));
+  document.addEventListener('click', (e) => {
+    if (rail?.classList.contains('is-open') && !rail.contains(e.target) && e.target !== toggle) {
+      rail.classList.remove('is-open');
+    }
+  });
+</script>
+
+</body>
+</html>

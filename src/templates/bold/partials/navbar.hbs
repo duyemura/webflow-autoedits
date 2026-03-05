@@ -1,0 +1,35 @@
+<header class="navbar" data-section="navbar">
+  <div class="navbar__inner">
+    <a href="/" class="navbar__logo" data-content="navbar.logo">
+      {{#if config.logo_url}}
+        <img src="{{config.logo_url}}" alt="{{config.name}}" />
+      {{else}}
+        <span class="navbar__logo-text">{{config.name}}</span>
+      {{/if}}
+    </a>
+
+    <nav class="navbar__nav" data-content="navbar.links">
+      {{#each nav_items}}
+        {{#unless is_cta}}
+          <a href="{{url}}" class="navbar__link">{{label}}</a>
+        {{/unless}}
+      {{/each}}
+    </nav>
+
+    <div class="navbar__ctas">
+      {{#each nav_items}}
+        {{#if is_cta}}
+          <a href="{{url}}" class="btn btn--{{cta_style}}" data-content="navbar.cta">{{label}}</a>
+        {{/if}}
+      {{/each}}
+    </div>
+
+    <button class="navbar__hamburger" aria-label="Open menu">&#9776;</button>
+  </div>
+
+  <div class="navbar__mobile" id="mobile-menu">
+    {{#each nav_items}}
+      <a href="{{url}}" class="navbar__mobile-link {{#if is_cta}}btn btn--primary{{/if}}">{{label}}</a>
+    {{/each}}
+  </div>
+</header>

@@ -1,16 +1,15 @@
-export * from "./config.js";
-export * from "./pipeline.js";
-export * from "./agent.js";
-export * from "./test-result.js";
+export interface AgentToolDefinition {
+  name: string;
+  description: string;
+  input_schema: {
+    type: string;
+    properties: Record<string, unknown>;
+    required?: string[];
+  };
+}
 
-export interface AuditEntry {
-  runId: string;
-  issueId: string;
-  timestamp: Date;
-  stage: import("./pipeline.js").PipelineStage;
-  action: string;
-  input: unknown;
-  output: unknown;
-  aiReasoning?: string;
-  duration: number;
+export interface AgentToolResult {
+  tool_use_id: string;
+  content: string;
+  is_error?: boolean;
 }
