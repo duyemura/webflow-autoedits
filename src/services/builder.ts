@@ -63,9 +63,9 @@ async function fetchSiteData(siteId: string, pageSlug: string) {
     { data: sections },
   ] = await Promise.all([
     db.from('site_config').select('*').eq('site_id', siteId).single(),
-    db.from('nav_items').select('*').eq('site_id', siteId).eq('visible', true).order('order'),
+    db.from('nav_items').select('*').eq('site_id', siteId).order('order'),
     db.from('pages').select('*').eq('site_id', siteId).eq('slug', pageSlug).single(),
-    db.from('sections').select('*').eq('site_id', siteId).eq('page_slug', pageSlug).eq('visible', true).order('order'),
+    db.from('sections').select('*').eq('site_id', siteId).eq('page_slug', pageSlug).order('order'),
   ]) as [
     { data: SiteConfig | null },
     { data: NavItem[] | null },
@@ -82,7 +82,6 @@ async function fetchSiteData(siteId: string, pageSlug: string) {
         .from('items')
         .select('*')
         .eq('section_id', section.id)
-        .eq('visible', true)
         .order('order') as { data: Item[] | null };
       return { ...section, items: items ?? [] };
     })
