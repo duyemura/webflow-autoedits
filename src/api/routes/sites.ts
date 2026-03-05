@@ -152,6 +152,30 @@ const sitesRoute: FastifyPluginAsync = async (app) => {
     return data;
   });
 
+  // Delete a site and all its data
+  app.delete('/sites/:siteId', async (req, reply) => {
+    const { siteId } = req.params as { siteId: string };
+    const db = supabase as ReturnType<typeof import('@supabase/supabase-js').createClient>;
+
+    // Verify site exists first
+    const { data: site } = await db.from('sites').select('id').eq('id', siteId).single() as { data: { id: string } | null };
+    if (!site) return reply.status(404).send({ error: 'Site not found' });
+
+    // Delete child records (cascade may handle some, but be explicit)
+    await db.from('items').delete().eq('site_id', siteId);
+    await db.from('sections').delete().eq('site_id', siteId);
+    await db.from('nav_items').delete().eq('site_id', siteId);
+    await db.from('pages').delete().eq('site_id', siteId);
+    await db.from('site_config').delete().eq('site_id', siteId);
+    await db.from('sites').delete().eq('id', siteId);
+
+    // Remove built files
+    const siteDir = path.join(DIST_SITES, siteId);
+    await fs.rm(siteDir, { recursive: true, force: true }).catch(() => {});
+
+    return reply.status(204).send();
+  });
+
   // Rebuild a site
   app.post('/sites/:siteId/rebuild', async (req, reply) => {
     const { siteId } = req.params as { siteId: string };
