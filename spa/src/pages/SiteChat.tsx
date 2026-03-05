@@ -353,11 +353,27 @@ export function SiteChat() {
 
       <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-gray-50">
         {messages.length === 0 && !isRunning && (
-          <div className="text-center text-gray-400 mt-20">
-            <p className="text-lg mb-2">What would you like to change?</p>
-            <p className="text-sm text-gray-300">
-              Try: "Change the hero headline" · "Update the phone number" · "Make the primary color navy"
-            </p>
+          <div className="flex flex-col items-center mt-16 gap-4">
+            <p className="text-gray-400 text-lg">What would you like to change?</p>
+            <div className="flex flex-wrap justify-center gap-2 max-w-lg">
+              {[
+                { label: "🔍 Scan a website", msg: "Scan " },
+                { label: "🎨 Change colors", msg: "Change the primary color to " },
+                { label: "✏️ Edit hero", msg: "Update the hero headline to " },
+                { label: "📋 Add a page", msg: "Create an about page" },
+                { label: "📅 Add schedule", msg: "Add a schedule page" },
+                { label: "🔗 Fix navigation", msg: "Fix the navigation — add links to all pages" },
+              ].map(({ label, msg }) => (
+                <button
+                  key={label}
+                  onClick={() => setInput(msg)}
+                  className="px-3 py-1.5 text-xs bg-white border border-gray-200 rounded-full text-gray-500 hover:border-blue-400 hover:text-blue-600 transition-colors"
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+            <p className="text-xs text-gray-300">or type anything below</p>
           </div>
         )}
 
