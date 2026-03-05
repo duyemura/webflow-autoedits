@@ -14,7 +14,16 @@ async function ppFetch<T>(path: string, apiKey: string, companyId: string): Prom
     const text = await res.text().catch(() => '');
     throw new Error(`PushPress API ${path} → ${res.status}: ${text}`);
   }
-  return res.json() as Promise<T>;
+  const json = await res.json();
+  // PP v3 wraps responses: { data: { resultArray: [...] } }
+  if (json && typeof json === 'object' && 'data' in json) {
+    const d = (json as Record<string, unknown>).data;
+    if (d && typeof d === 'object' && 'resultArray' in d) {
+      return (d as Record<string, unknown>).resultArray as T;
+    }
+    return d as T;
+  }
+  return json as T;
 }
 
 export async function getClasses(
