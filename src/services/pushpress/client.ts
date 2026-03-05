@@ -29,10 +29,9 @@ async function ppFetch<T>(path: string, apiKey: string, companyId: string): Prom
 export async function getClasses(
   apiKey: string,
   companyId: string,
-  opts: { startsAfter?: number; limit?: number } = {}
+  opts: { limit?: number } = {}
 ): Promise<PPClass[]> {
-  const params = new URLSearchParams({ order: 'ascending', limit: String(opts.limit ?? 100) });
-  if (opts.startsAfter) params.set('startsAfter', String(opts.startsAfter));
+  const params = new URLSearchParams({ order: 'ascending', limit: String(opts.limit ?? 200) });
   return ppFetch<PPClass[]>(`/classes?${params}`, apiKey, companyId);
 }
 
@@ -92,11 +91,9 @@ export async function getSchedule(
   primaryColor: string,
   daysAhead = 7
 ): Promise<ScheduleClass[]> {
-  const startsAfter = Math.floor(Date.now() / 1000);
-
-  // Fetch classes; class types are optional (endpoint may not exist on all PP plans)
+  // Fetch all classes and filter client-side — PP API startsAfter param is unreliable
   const [classes, types] = await Promise.all([
-    getClasses(apiKey, companyId, { startsAfter, limit: 200 }),
+    getClasses(apiKey, companyId, { limit: 200 }),
     getClassTypes(apiKey, companyId).catch(() => [] as PPClassType[]),
   ]);
 
