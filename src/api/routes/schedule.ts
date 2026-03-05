@@ -75,15 +75,16 @@ const scheduleRoute: FastifyPluginAsync = async (app) => {
 
     const now = Math.floor(Date.now() / 1000);
     try {
-      const [rawClasses, rawTypes] = await Promise.all([
+      const [rawClasses, typesOrErr] = await Promise.all([
         getClasses(config.pp_api_key, config.pp_company_id, { startsAfter: now, limit: 10 }),
-        getClassTypes(config.pp_api_key, config.pp_company_id).catch((e: unknown) => ({ error: e instanceof Error ? e.message : String(e) })),
+        getClassTypes(config.pp_api_key, config.pp_company_id).catch((e: unknown) => e instanceof Error ? e.message : String(e)),
       ]);
+      const rawTypes = Array.isArray(typesOrErr) ? typesOrErr : [];
       return reply.send({
         nowUnix: now,
         nowIso: new Date(now * 1000).toISOString(),
         classCount: rawClasses.length,
-        typeCount: rawTypes.length,
+        typesResult: typesOrErr,
         firstClass: rawClasses[0] ?? null,
         firstType: rawTypes[0] ?? null,
       });
