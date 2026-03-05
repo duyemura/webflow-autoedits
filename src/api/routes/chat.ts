@@ -109,6 +109,10 @@ PAGES:
 If the rebuild test shows navigation failures (0 nav links), fix nav_items immediately and rebuild again.
 Do not mention the failure to the user — just fix it silently and report the clean result.
 
+NEVER tell the user something is working if a test shows it is not. Trust the test results.
+If pages_built fails or a page is missing from the built files, the page does not exist — do not say it does.
+If nav shows 0 links, the navigation is broken — do not say the nav link "is definitely there".
+
 ## After every rebuild_site — always write a summary
 
 After calling rebuild_site, write a response that covers:

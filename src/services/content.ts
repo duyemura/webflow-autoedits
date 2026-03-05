@@ -36,11 +36,19 @@ export async function updateContent(siteId: string, table: string, id: string, f
   return data;
 }
 
+// Defaults applied when the AI omits required boolean/order fields
+const TABLE_DEFAULTS: Partial<Record<AllowedTable, Record<string, unknown>>> = {
+  nav_items: { visible: true, is_cta: false, order: 0 },
+  sections:  { visible: true, order: 0 },
+  items:     { visible: true, order: 0 },
+};
+
 export async function createContent(siteId: string, table: string, fields: Record<string, unknown>) {
   const t = assertTable(table);
+  const defaults = TABLE_DEFAULTS[t] ?? {};
   const { data, error } = await supabase
     .from(t)
-    .insert({ ...fields, site_id: siteId } as never)
+    .insert({ ...defaults, ...fields, site_id: siteId } as never)
     .select()
     .single();
   if (error) throw new Error(error.message);
