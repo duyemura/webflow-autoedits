@@ -9,6 +9,7 @@ interface ScrapeResult {
   booking_url?: string; hours?: Record<string, string>;
   programs?: { name: string; description: string }[];
   coaches?: { name: string; role: string; bio?: string }[];
+  icp?: string;
   raw_summary?: string;
 }
 
@@ -70,15 +71,16 @@ async function createSite(payload: GymInfo & {
 
 // ── Step indicator ────────────────────────────────────────────────
 
-const STEP_LABELS = ["Details", "PushPress", "Launch"];
-const PHASE_INDEX: Record<Phase, number> = { url: -1, details: 0, pushpress: 1, launch: 2 };
-
-function Steps({ phase }: { phase: Phase }) {
-  const current = PHASE_INDEX[phase];
+function Steps({ phase, hasScrape }: { phase: Phase; hasScrape: boolean }) {
+  const labels = hasScrape ? ["PushPress", "Launch"] : ["Details", "PushPress", "Launch"];
+  const indexMap: Record<Phase, number> = hasScrape
+    ? { url: -1, details: -1, pushpress: 0, launch: 1 }
+    : { url: -1, details: 0, pushpress: 1, launch: 2 };
+  const current = indexMap[phase];
   if (current < 0) return null;
   return (
     <div className="flex items-center gap-0 mb-10">
-      {STEP_LABELS.map((label, i) => {
+      {labels.map((label, i) => {
         const done = i < current;
         const active = i === current;
         return (
@@ -93,7 +95,7 @@ function Steps({ phase }: { phase: Phase }) {
                 active ? "text-blue-600" : done ? "text-green-600" : "text-gray-400"
               }`}>{label}</span>
             </div>
-            {i < STEP_LABELS.length - 1 && (
+            {i < labels.length - 1 && (
               <div className={`w-14 h-0.5 mx-1 mb-4 transition-colors ${i < current ? "bg-green-400" : "bg-gray-200"}`} />
             )}
           </div>
@@ -105,18 +107,16 @@ function Steps({ phase }: { phase: Phase }) {
 
 // ── Field ─────────────────────────────────────────────────────────
 
-function Field({ label, name, value, onChange, placeholder, type = "text", required, hint }: {
+function Field({ label, name, value, onChange, placeholder, type = "text", hint }: {
   label: string; name: string; value: string; onChange: (v: string) => void;
-  placeholder?: string; type?: string; required?: boolean; hint?: string;
+  placeholder?: string; type?: string; hint?: string;
 }) {
   return (
     <div>
-      <label className="block text-sm font-medium text-gray-700 mb-1">
-        {label} {required && <span className="text-red-400">*</span>}
-      </label>
+      <label className="block text-xs font-medium text-gray-500 mb-1">{label}</label>
       <input type={type} name={name} value={value} onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
-        className="w-full px-3 py-2 border border-gray-200 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent" />
+        className="w-full px-3 py-2 border border-gray-200 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-gray-50" />
       {hint && <p className="text-xs text-gray-400 mt-1">{hint}</p>}
     </div>
   );
@@ -197,38 +197,23 @@ function PhaseUrl({ onScraped, onManual }: {
   );
 }
 
-// ── Phase 1: Gym details ──────────────────────────────────────────
+// ── Phase 1: Gym details (manual path only) ───────────────────────
 
-function PhaseDetails({ data, onChange, onNext, scraped }: {
+function PhaseDetails({ data, onChange, onNext }: {
   data: GymInfo;
   onChange: (f: Partial<GymInfo>) => void;
   onNext: () => void;
-  scraped: ScrapeResult | null;
 }) {
   const canNext = data.name.trim().length > 0;
 
   return (
     <div>
       <h2 className="text-xl font-bold mb-1">Your gym details</h2>
-      <p className="text-sm text-gray-500 mb-1">
-        {scraped ? "We pre-filled what we found — review and adjust anything before continuing." : "Tell us about your gym. You can update anything later."}
-      </p>
-
-      {scraped && (
-        <div className="mb-5 p-3 bg-blue-50 border border-blue-100 rounded-md text-xs text-blue-700 flex items-start gap-2">
-          <span>✓</span>
-          <span>
-            Imported from your site.
-            {scraped.programs?.length ? ` Found ${scraped.programs.length} program${scraped.programs.length !== 1 ? "s" : ""}.` : ""}
-            {scraped.coaches?.length ? ` Found ${scraped.coaches.length} coach${scraped.coaches.length !== 1 ? "es" : ""}.` : ""}
-            {" "}All content will be used to build your pages.
-          </span>
-        </div>
-      )}
+      <p className="text-sm text-gray-500 mb-6">Tell us about your gym. You can update anything later.</p>
 
       <div className="space-y-4">
-        <Field label="Gym name" name="name" value={data.name} onChange={(v) => onChange({ name: v })}
-          placeholder="Iron North CrossFit" required />
+        <Field label="Gym name *" name="name" value={data.name} onChange={(v) => onChange({ name: v })}
+          placeholder="Iron North CrossFit" />
         <Field label="Tagline" name="tagline" value={data.tagline} onChange={(v) => onChange({ tagline: v })}
           placeholder="Where strength is built" hint="Short phrase used in your header and footer" />
         <div className="grid grid-cols-2 gap-3">
@@ -240,7 +225,7 @@ function PhaseDetails({ data, onChange, onNext, scraped }: {
           <Field label="Email" name="email" value={data.email} onChange={(v) => onChange({ email: v })} placeholder="hello@gym.com" type="email" />
         </div>
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Brand color</label>
+          <label className="block text-xs font-medium text-gray-500 mb-1">Brand color</label>
           <div className="flex items-center gap-3">
             <input type="color" value={data.primary_color} onChange={(e) => onChange({ primary_color: e.target.value })}
               className="w-10 h-10 rounded-md cursor-pointer border border-gray-200 p-0.5 bg-white" />
@@ -248,7 +233,6 @@ function PhaseDetails({ data, onChange, onNext, scraped }: {
               onChange={(e) => { if (/^#[0-9a-fA-F]{0,6}$/.test(e.target.value)) onChange({ primary_color: e.target.value }); }}
               className="w-28 px-3 py-2 border border-gray-200 rounded-md text-sm font-mono focus:outline-none focus:ring-2 focus:ring-blue-500"
               placeholder="#E63946" />
-            <span className="text-xs text-gray-400">Buttons, accents, highlights</span>
           </div>
         </div>
       </div>
@@ -265,14 +249,26 @@ function PhaseDetails({ data, onChange, onNext, scraped }: {
 
 // ── Phase 2: PushPress ────────────────────────────────────────────
 
-function PhasePushPress({ pp, onChange, onNext, onSkip }: {
-  pp: PPState; onChange: (p: Partial<PPState>) => void; onNext: () => void; onSkip: () => void;
+function PhasePushPress({ pp, onChange, onNext, onSkip, scraped, gym, onGymChange }: {
+  pp: PPState;
+  onChange: (p: Partial<PPState>) => void;
+  onNext: () => void;
+  onSkip: () => void;
+  scraped: ScrapeResult | null;
+  gym: GymInfo;
+  onGymChange: (f: Partial<GymInfo>) => void;
 }) {
+  const [showEdit, setShowEdit] = useState(false);
+
   const verifyMutation = useMutation({
     mutationFn: () => verifyPP(pp.apiKey),
     onSuccess: (company) => onChange({ company, error: null, verified: true }),
     onError: (err: Error) => onChange({ company: null, error: err.message, verified: false }),
   });
+
+  const location = scraped
+    ? [scraped.city, scraped.state].filter(Boolean).join(", ")
+    : [gym.city, gym.state].filter(Boolean).join(", ");
 
   return (
     <div>
@@ -280,10 +276,71 @@ function PhasePushPress({ pp, onChange, onNext, onSkip }: {
         <h2 className="text-xl font-bold">Connect PushPress</h2>
         <button onClick={onSkip} className="text-sm text-gray-400 hover:text-gray-600 mt-1">Skip →</button>
       </div>
-      <p className="text-sm text-gray-500 mb-6">
+      <p className="text-sm text-gray-500 mb-5">
         Optional. Your schedule page will show live classes automatically when connected.
-        You can add this later from the site chat.
       </p>
+
+      {/* Trust card — shown when scraped */}
+      {scraped && (
+        <div className="mb-5 p-4 bg-gray-50 border border-gray-200 rounded-lg">
+          <div className="flex items-start justify-between gap-4">
+            <div className="min-w-0">
+              {gym.primary_color && (
+                <div className="w-3 h-3 rounded-full inline-block mr-2 border border-gray-200 align-middle"
+                  style={{ background: gym.primary_color }} />
+              )}
+              <span className="font-semibold text-gray-900">{gym.name || "Your gym"}</span>
+              {location && <span className="text-sm text-gray-500 ml-2">{location}</span>}
+              {scraped.icp && (
+                <p className="text-xs text-gray-500 mt-1.5 leading-relaxed">{scraped.icp}</p>
+              )}
+              {(scraped.programs?.length || scraped.coaches?.length) && (
+                <p className="text-xs text-gray-400 mt-1">
+                  {[
+                    scraped.programs?.length && `${scraped.programs.length} programs`,
+                    scraped.coaches?.length && `${scraped.coaches.length} coaches`,
+                  ].filter(Boolean).join(" · ")} imported
+                </p>
+              )}
+            </div>
+          </div>
+
+          <button
+            onClick={() => setShowEdit((v) => !v)}
+            className="mt-3 text-xs text-gray-400 hover:text-gray-600 flex items-center gap-1"
+          >
+            <span>{showEdit ? "▲" : "▼"}</span>
+            {showEdit ? "Hide details" : "Edit details"}
+          </button>
+
+          {showEdit && (
+            <div className="mt-4 pt-4 border-t border-gray-200 space-y-3 opacity-70">
+              <div className="grid grid-cols-2 gap-3">
+                <Field label="Gym name" name="name" value={gym.name} onChange={(v) => onGymChange({ name: v })} placeholder="Iron North CrossFit" />
+                <Field label="Tagline" name="tagline" value={gym.tagline} onChange={(v) => onGymChange({ tagline: v })} placeholder="Where strength is built" />
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <Field label="City" name="city" value={gym.city} onChange={(v) => onGymChange({ city: v })} placeholder="Minneapolis" />
+                <Field label="State" name="state" value={gym.state} onChange={(v) => onGymChange({ state: v })} placeholder="MN" />
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <Field label="Phone" name="phone" value={gym.phone} onChange={(v) => onGymChange({ phone: v })} placeholder="(612) 555-1234" type="tel" />
+                <Field label="Email" name="email" value={gym.email} onChange={(v) => onGymChange({ email: v })} placeholder="hello@gym.com" type="email" />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-500 mb-1">Brand color</label>
+                <div className="flex items-center gap-3">
+                  <input type="color" value={gym.primary_color} onChange={(e) => onGymChange({ primary_color: e.target.value })}
+                    className="w-9 h-9 rounded-md cursor-pointer border border-gray-200 p-0.5 bg-white" />
+                  <input type="text" value={gym.primary_color}
+                    onChange={(e) => { if (/^#[0-9a-fA-F]{0,6}$/.test(e.target.value)) onGymChange({ primary_color: e.target.value }); }}
+                    className="w-24 px-2 py-1.5 border border-gray-200 rounded-md text-xs font-mono focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
 
       <div className="space-y-4">
         <div>
@@ -309,9 +366,7 @@ function PhasePushPress({ pp, onChange, onNext, onSkip }: {
 
         {pp.verified && pp.company && (
           <div className="p-4 bg-green-50 border border-green-200 rounded-md">
-            <div className="flex items-center gap-2 mb-2">
-              <span className="text-green-600 font-semibold text-sm">✓ Connected</span>
-            </div>
+            <p className="text-green-600 font-semibold text-sm mb-1">✓ Connected</p>
             <p className="font-semibold text-gray-900">{pp.company.name}</p>
             {(pp.company.city || pp.company.state) && (
               <p className="text-sm text-gray-500 mt-0.5">{[pp.company.city, pp.company.state].filter(Boolean).join(", ")}</p>
@@ -345,6 +400,16 @@ const TEMPLATES = [
     description: "Persistent left sidebar nav. Clean, editorial layout. Great for premium studios.",
     preview: "┌─────┬────────────┐\n│LOGO │ BIG        │\n│     │ HEADLINE   │\n│NAV  │            │\n│     │ subheading │\n│     │ [Button]   │\n└─────┴────────────┘",
   },
+  {
+    slug: "minimal", name: "Minimal",
+    description: "Center-aligned hero. Lots of whitespace. Boutique and wellness-forward.",
+    preview: "┌──────────────────┐\n│   LOGO           │\n│   home about ... │\n│                  │\n│   BIG HEADLINE   │\n│   subheading     │\n└──────────────────┘",
+  },
+  {
+    slug: "stack", name: "Stack",
+    description: "Full-bleed sections with bold typographic hierarchy. Best for high-intensity brands.",
+    preview: "┌──────────────────┐\n│ ■ LOGO    [Menu] │\n│──────────────────│\n│ HEADLINE         │\n│ STACKED BIG TEXT │\n│ [CTA]            │\n└──────────────────┘",
+  },
 ];
 
 function PhaseLaunch({ template, onTemplate, onBack, onCreate, isCreating, gymName, hasScrape }: {
@@ -354,20 +419,22 @@ function PhaseLaunch({ template, onTemplate, onBack, onCreate, isCreating, gymNa
   return (
     <div>
       <h2 className="text-xl font-bold mb-1">Choose a template</h2>
-      <p className="text-sm text-gray-500 mb-6">You can switch templates at any time.</p>
+      <p className="text-sm text-gray-500 mb-5">You can switch templates at any time.</p>
 
-      <div className="grid grid-cols-2 gap-4 mb-6">
+      <div className="space-y-2 mb-6">
         {TEMPLATES.map((t) => (
           <button key={t.slug} onClick={() => onTemplate(t.slug)}
-            className={`text-left p-4 border-2 rounded-lg transition-all ${
-              template === t.slug ? "border-blue-600 bg-blue-50" : "border-gray-200 hover:border-gray-300"
+            className={`w-full text-left flex items-center gap-4 px-4 py-3 border-2 rounded-lg transition-all ${
+              template === t.slug ? "border-blue-600 bg-blue-50" : "border-gray-200 hover:border-gray-300 bg-white"
             }`}>
-            <div className="flex items-center justify-between mb-2">
-              <span className="font-semibold text-sm">{t.name}</span>
-              {template === t.slug && <span className="text-xs text-blue-600 font-medium">Selected</span>}
+            <pre className="text-[8px] text-gray-400 font-mono leading-tight bg-gray-100 p-1.5 rounded flex-shrink-0 w-28 overflow-hidden">{t.preview}</pre>
+            <div className="min-w-0">
+              <div className="flex items-center gap-2">
+                <span className="font-semibold text-sm">{t.name}</span>
+                {template === t.slug && <span className="text-xs text-blue-600 font-medium">Selected</span>}
+              </div>
+              <p className="text-xs text-gray-500 mt-0.5">{t.description}</p>
             </div>
-            <pre className="text-[9px] text-gray-400 font-mono leading-tight mb-2 bg-gray-50 p-2 rounded overflow-hidden">{t.preview}</pre>
-            <p className="text-xs text-gray-500">{t.description}</p>
           </button>
         ))}
       </div>
@@ -441,8 +508,7 @@ export function NewSite() {
   const handleScraped = (data: ScrapeResult) => {
     setScraped(data);
     setGym((prev) => ({ ...DEFAULT_GYM, ...prev, ...scrapedToGym(data) }));
-    // Pre-fill social links from scraped data if PP not yet set
-    setPhase("details");
+    setPhase("pushpress"); // skip details when we have scraped data
   };
 
   const createMutation = useMutation({
@@ -469,7 +535,7 @@ export function NewSite() {
         </div>
 
         <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-8">
-          <Steps phase={phase} />
+          <Steps phase={phase} hasScrape={!!scraped} />
 
           {phase === "url" && (
             <PhaseUrl onScraped={handleScraped} onManual={() => setPhase("details")} />
@@ -480,7 +546,6 @@ export function NewSite() {
               data={gym}
               onChange={(f) => setGym((p) => ({ ...p, ...f }))}
               onNext={() => setPhase("pushpress")}
-              scraped={scraped}
             />
           )}
 
@@ -490,6 +555,9 @@ export function NewSite() {
               onChange={(u) => setPP((p) => ({ ...p, ...u }))}
               onNext={() => setPhase("launch")}
               onSkip={() => setPhase("launch")}
+              scraped={scraped}
+              gym={gym}
+              onGymChange={(f) => setGym((p) => ({ ...p, ...f }))}
             />
           )}
 

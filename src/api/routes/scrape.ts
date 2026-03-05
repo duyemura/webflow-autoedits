@@ -85,6 +85,7 @@ Return ONLY valid JSON matching this schema — no markdown, no explanation:
   "hours": { "Monday": "5:30am-8pm", ... } or null,
   "programs": [ { "name": "CrossFit", "description": "..." }, ... ] or [],
   "coaches": [ { "name": "Jane", "role": "Head Coach", "bio": "..." }, ... ] or [],
+  "icp": "One sentence describing the ideal member: fitness level, goals, demographics. E.g. 'Competitive CrossFit athletes and fitness-focused adults, 25–40, who want structured coaching.'",
   "raw_summary": "2-4 sentence plain English summary of the gym: what they offer, who they serve, what makes them different"
 }
 
@@ -93,6 +94,7 @@ Rules:
 - primary_color: prefer CSS custom property values or dominant button/header color
 - programs: list every class type, service, or training format mentioned
 - coaches: list every staff member or coach mentioned by name
+- icp: synthesize from the language, programs, and tone of the site — who is this gym really for?
 - raw_summary: write this in second person ("You offer...", "Your gym is...")`;
 
 // ── Route ─────────────────────────────────────────────────────────

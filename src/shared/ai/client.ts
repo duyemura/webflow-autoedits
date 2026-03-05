@@ -2,6 +2,10 @@ import Anthropic from "@anthropic-ai/sdk";
 import type { AgentToolDefinition, AgentToolResult } from "../../types/index.js";
 import { logger } from "../logger.js";
 
+export type ProgressEvent =
+  | { type: 'tool_start'; name: string; input: Record<string, unknown> }
+  | { type: 'tool_done'; name: string; input: Record<string, unknown>; result: string };
+
 export interface AICallOptions {
   model?: string;
   systemPrompt: string;
@@ -11,6 +15,7 @@ export interface AICallOptions {
   toolHandler?: (name: string, input: Record<string, unknown>) => Promise<AgentToolResult>;
   maxTokens?: number;
   maxTurns?: number;
+  onProgress?: (event: ProgressEvent) => void;
 }
 
 export interface AICallResult {
@@ -45,6 +50,7 @@ export class AIClient {
       toolHandler,
       maxTokens = MAX_TOKENS,
       maxTurns = MAX_TURNS,
+      onProgress,
     } = options;
 
     const messages: Anthropic.MessageParam[] = options.messages
@@ -99,10 +105,14 @@ export class AIClient {
         logger.debug({ tool: toolUse.name }, "AI calling tool");
 
         try {
+          onProgress?.({ type: 'tool_start', name: toolUse.name, input: toolUse.input as Record<string, unknown> });
+
           const result = await toolHandler(
             toolUse.name,
             toolUse.input as Record<string, unknown>,
           );
+
+          onProgress?.({ type: 'tool_done', name: toolUse.name, input: toolUse.input as Record<string, unknown>, result: result.content });
 
           allToolCalls.push({
             name: toolUse.name,

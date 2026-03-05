@@ -4,6 +4,7 @@ import { AIClient } from '../../shared/ai/client.js';
 import { ToolRunner } from '../../shared/ai/tool-runner.js';
 import { getContent, updateContent, createContent, deleteContent, getSiteConfig, updateSiteConfig } from '../../services/content.js';
 import { rebuildSite } from '../../services/builder.js';
+import { runSiteTests } from '../../services/test-runner.js';
 import { supabase } from '../../services/supabase/client.js';
 
 function buildSystemPrompt(siteId: string): string {
@@ -329,27 +330,53 @@ const chatRoute: FastifyPluginAsync = async (app) => {
 
     runner.register({
       name: 'rebuild_site',
-      description: 'Rebuild and publish the site HTML. Always call this after making any content changes.',
+      description: 'Rebuild and publish the site HTML, then run automated tests. Always call this after making any content changes.',
       input_schema: { type: 'object', properties: {} },
     }, async () => {
-      const result = await rebuildSite(siteId);
-      return `Site rebuilt: ${result.pagesBuilt} page(s) in ${result.buildTimeMs}ms`;
+      const buildResult = await rebuildSite(siteId);
+      const testReport = await runSiteTests(siteId);
+      return [
+        `Site rebuilt: ${buildResult.pagesBuilt} page(s) in ${buildResult.buildTimeMs}ms`,
+        testReport.summary,
+      ].join('\n\n');
     });
 
-    const aiClient = new AIClient();
-    const anthropicMessages: Anthropic.MessageParam[] = messages.map((m) => ({
-      role: m.role as 'user' | 'assistant',
-      content: m.content,
-    }));
+    // Set up SSE stream
+    reply.raw.setHeader('Content-Type', 'text/event-stream; charset=utf-8');
+    reply.raw.setHeader('Cache-Control', 'no-cache');
+    reply.raw.setHeader('Connection', 'keep-alive');
+    reply.raw.setHeader('X-Accel-Buffering', 'no');
+    reply.hijack();
 
-    const result = await aiClient.run({
-      systemPrompt: buildSystemPrompt(siteId),
-      messages: anthropicMessages,
-      tools: runner.getDefinitions(),
-      toolHandler: runner.createHandler(),
-    });
+    const send = (event: string, data: unknown) => {
+      reply.raw.write(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`);
+    };
 
-    return { response: result.text, toolCalls: result.toolCalls };
+    try {
+      const aiClient = new AIClient();
+      const anthropicMessages: Anthropic.MessageParam[] = messages.map((m) => ({
+        role: m.role as 'user' | 'assistant',
+        content: m.content,
+      }));
+
+      const result = await aiClient.run({
+        systemPrompt: buildSystemPrompt(siteId),
+        messages: anthropicMessages,
+        tools: runner.getDefinitions(),
+        toolHandler: runner.createHandler(),
+        onProgress: (event) => {
+          if (event.type === 'tool_done') {
+            send('tool', { name: event.name, input: event.input, result: event.result });
+          }
+        },
+      });
+
+      send('done', { response: result.text, toolCalls: result.toolCalls });
+    } catch (err) {
+      send('error', { error: err instanceof Error ? err.message : String(err) });
+    } finally {
+      reply.raw.end();
+    }
   });
 };
 
