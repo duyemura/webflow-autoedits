@@ -275,16 +275,12 @@ export function SiteChat() {
                 msg.role === "user" ? "bg-blue-600 text-white" : "bg-white border text-gray-800"
               }`}
             >
-              {msg.content && (
-                <p className="whitespace-pre-wrap text-sm">{msg.content}</p>
-              )}
-
               {msg.pending && !msg.content && (
                 <p className="text-sm text-gray-400 italic">Working...</p>
               )}
 
               {msg.toolCalls && msg.toolCalls.length > 0 && (
-                <div className="mt-3 space-y-1">
+                <div className={`space-y-1 ${msg.content ? "mb-3" : ""}`}>
                   {msg.toolCalls.map((tc, j) => (
                     <ToolCallItem key={j} tc={tc} />
                   ))}
@@ -294,6 +290,13 @@ export function SiteChat() {
                       <span>Continuing...</span>
                     </div>
                   )}
+                </div>
+              )}
+
+              {/* Summary — shown after tool calls complete */}
+              {msg.content && msg.role === "assistant" && (
+                <div className={`${msg.toolCalls?.length ? "pt-3 border-t border-gray-100 mt-1" : ""}`}>
+                  <p className="whitespace-pre-wrap text-sm leading-relaxed">{msg.content}</p>
                 </div>
               )}
             </div>
