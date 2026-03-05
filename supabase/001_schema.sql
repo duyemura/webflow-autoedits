@@ -65,7 +65,14 @@ create table site_config (
   -- Integrations
   booking_url text,
   schedule_embed_url text,
-  social_proof_embed text
+  social_proof_embed text,
+  -- ICP (Ideal Customer Profile)
+  icp_avatar text,
+  icp_trigger text,
+  icp_fear text,
+  icp_desire text,
+  icp_objection text,
+  icp_identity text
 );
 
 -- ─────────────────────────────────────────
