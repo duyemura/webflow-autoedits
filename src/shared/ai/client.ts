@@ -86,15 +86,21 @@ export class AIClient {
         (b): b is Anthropic.TextBlock => b.type === "text",
       );
       if (textBlocks.length > 0) {
-        finalText = textBlocks.map((b) => b.text).join("\n");
+        finalText += textBlocks.map((b) => b.text).join("\n");
       }
 
-      // If no tool use, we're done
+      // If no tool use, we're done (or auto-continue if output was truncated)
       const toolUseBlocks = response.content.filter(
         (b): b is Anthropic.ToolUseBlock => b.type === "tool_use",
       );
 
       if (toolUseBlocks.length === 0 || !toolHandler) {
+        if (stopReason === "max_tokens" && toolUseBlocks.length === 0) {
+          // Response was cut off — push it and ask the model to continue
+          messages.push({ role: "assistant", content: response.content });
+          messages.push({ role: "user", content: "continue" });
+          continue;
+        }
         break;
       }
 
