@@ -412,9 +412,14 @@
       .then(function (r) { return r.json(); })
       .then(function (data) {
         if (!data.classes || data.classes.length === 0) {
-          root.innerHTML = data.configured === false
-            ? '<p class="pp-sched__empty">Live class booking coming soon.' + contactLine + ' Check the times below.</p>'
-            : '<p class="pp-sched__empty">No classes scheduled in the next 7 days.' + contactLine + '</p>';
+          if (data.configured === false) {
+            var bookBtn = bookingUrl
+              ? ' <a href="' + bookingUrl + '" target="_blank" rel="noopener" style="display:inline-block;margin-top:1rem;padding:.6rem 1.4rem;background:var(--color-primary);color:#fff;border-radius:4px;font-weight:600;font-size:.9rem;">Book a Class →</a>'
+              : '';
+            root.innerHTML = '<div class="pp-sched__empty" style="padding:3rem 2rem;"><p style="font-size:1.05rem;font-weight:600;color:var(--color-secondary);margin-bottom:.5rem;">Live schedule coming soon</p><p style="color:#999;font-size:.9rem;">Connect your PushPress account in the chat to display real-time class availability.' + (phone ? ' Questions? Call <a href="tel:' + phone + '" style="color:var(--color-primary)">' + phone + '</a>.' : '') + '</p>' + bookBtn + '</div>';
+          } else {
+            root.innerHTML = '<p class="pp-sched__empty">No classes scheduled in the next 7 days.' + contactLine + '</p>';
+          }
           return;
         }
         renderSchedule(data.classes);

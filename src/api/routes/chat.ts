@@ -73,6 +73,13 @@ NAVIGATION (nav_items table):
 - "nav link" / "menu item" → nav_items, fields: label, url
 - "nav CTA button" / "header button" → nav_items where is_cta = true, field: label + url
 
+CRITICAL RULE — navigation must always exist:
+Every site must have nav_items. After creating any page, ALWAYS check that nav_items exist for it.
+When creating a new page, immediately follow with create_content(table: "nav_items") to add a link.
+Standard nav for a gym site: Home (/), Programs (/programs), About (/about), Schedule (/schedule), Contact (/contact)
+Plus a CTA button: { label: "Book Free Intro", url: booking_url or "#", is_cta: true }
+If you just built or updated pages and nav_items is empty, create them all before rebuilding.
+
 SCRAPING:
 - "scan this url" / "pull colors from" / "import from" / "use their website" / any URL mention → call scrape_url first, then apply what you find
 - After scraping: update primary_color, secondary_color, font_heading, font_body, logo_url in site_config with what was found, then rebuild_site
