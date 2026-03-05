@@ -72,11 +72,13 @@ function ToolCallItem({ tc, active }: { tc: ToolCall; active?: boolean }) {
           <span className="text-green-500 flex-shrink-0">✓</span>
         )}
         <span className="font-medium">{label}</span>
-        {tc.name === "create_page" && tc.input?.slug && (
+        {tc.name === "create_page" && tc.input?.slug != null && (
           <span className="text-gray-400">/{String(tc.input.slug)}</span>
         )}
-        {tc.name === "create_content" && tc.input?.fields && (typeof (tc.input.fields as Record<string, unknown>).title === 'string') && (
-          <span className="text-gray-400 truncate max-w-[120px]">{String((tc.input.fields as Record<string, unknown>).title)}</span>
+        {tc.name === "create_content" && tc.input?.fields != null && (
+          typeof (tc.input.fields as Record<string, unknown>).title === 'string' && (
+            <span className="text-gray-400 truncate max-w-[120px]">{String((tc.input.fields as Record<string, unknown>).title)}</span>
+          )
         )}
       </summary>
       {!active && (
@@ -153,7 +155,7 @@ export function SiteChat() {
           const dataLine = part.match(/^data: (.+)/m)?.[1];
           if (!dataLine) continue;
 
-          let payload: Record<string, unknown>;
+          let payload: unknown;
           try { payload = JSON.parse(dataLine); } catch { continue; }
 
           if (eventLine === "tool") {
@@ -184,7 +186,7 @@ export function SiteChat() {
               return next;
             });
           } else if (eventLine === "error") {
-            throw new Error(String(payload.error ?? "Unknown error"));
+            throw new Error(String((payload as { error?: unknown }).error ?? "Unknown error"));
           }
         }
       }
