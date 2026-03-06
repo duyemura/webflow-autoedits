@@ -6,6 +6,7 @@ interface ToolCall {
   name: string;
   input: Record<string, unknown>;
   result: string;
+  is_error?: boolean;
 }
 
 interface TestResult {
@@ -94,20 +95,23 @@ const TOOL_LABELS: Record<string, string> = {
 function ToolCallItem({ tc, active }: { tc: ToolCall; active?: boolean }) {
   const [open, setOpen] = useState(false);
   const label = TOOL_LABELS[tc.name] ?? tc.name;
+  const isError = !active && tc.is_error;
 
   return (
     <details
       open={open}
       onToggle={(e) => setOpen((e.target as HTMLDetailsElement).open)}
-      className="text-xs bg-gray-50 rounded p-2 border border-gray-100"
+      className={`text-xs rounded p-2 border ${isError ? "bg-red-50 border-red-200" : "bg-gray-50 border-gray-100"}`}
     >
       <summary className="cursor-pointer select-none flex items-center gap-2 text-gray-500">
         {active ? (
           <span className="w-3 h-3 border-2 border-blue-400 border-t-transparent rounded-full animate-spin flex-shrink-0" />
+        ) : isError ? (
+          <span className="text-red-500 flex-shrink-0">✗</span>
         ) : (
           <span className="text-green-500 flex-shrink-0">✓</span>
         )}
-        <span className="font-medium">{label}</span>
+        <span className={`font-medium ${isError ? "text-red-600" : ""}`}>{label}</span>
         {tc.name === "create_page" && tc.input?.slug != null && (
           <span className="text-gray-400">/{String(tc.input.slug)}</span>
         )}
@@ -118,8 +122,8 @@ function ToolCallItem({ tc, active }: { tc: ToolCall; active?: boolean }) {
         )}
       </summary>
       {!active && (
-        <pre className="mt-2 overflow-x-auto text-gray-400 max-h-32 overflow-y-auto whitespace-pre-wrap">
-          {JSON.stringify(tc.input, null, 2)}
+        <pre className={`mt-2 overflow-x-auto max-h-32 overflow-y-auto whitespace-pre-wrap ${isError ? "text-red-500" : "text-gray-400"}`}>
+          {isError ? tc.result : JSON.stringify(tc.input, null, 2)}
         </pre>
       )}
     </details>

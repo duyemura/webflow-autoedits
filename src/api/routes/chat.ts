@@ -305,11 +305,10 @@ const chatRoute: FastifyPluginAsync = async (app) => {
           hero_cta_text: { type: 'string', description: 'CTA button text (optional)' },
           hero_cta_url: { type: 'string', description: 'CTA button URL (optional)' },
           meta_description: { type: 'string', description: 'SEO meta description (optional)' },
-          is_landing: { type: 'boolean', description: 'Set true for landing pages (ad campaigns, free trial). Uses stripped nav with no exit links.' },
         },
         required: ['slug', 'title', 'hero_headline'],
       },
-    }, async ({ slug, title, hero_headline, hero_subheading, hero_cta_text, hero_cta_url, meta_description, is_landing }) => {
+    }, async ({ slug, title, hero_headline, hero_subheading, hero_cta_text, hero_cta_url, meta_description }) => {
       const { data, error } = await (supabase as ReturnType<typeof import('@supabase/supabase-js').createClient>)
         .from('pages')
         .insert({
@@ -321,7 +320,6 @@ const chatRoute: FastifyPluginAsync = async (app) => {
           hero_cta_text: hero_cta_text ?? null,
           hero_cta_url: hero_cta_url ?? null,
           meta_description: meta_description ?? null,
-          is_landing: is_landing ?? false,
           published: true,
         } as never)
         .select()
@@ -460,7 +458,7 @@ const chatRoute: FastifyPluginAsync = async (app) => {
         toolHandler: runner.createHandler(),
         onProgress: (event) => {
           if (event.type === 'tool_done') {
-            send('tool', { name: event.name, input: event.input, result: event.result });
+            send('tool', { name: event.name, input: event.input, result: event.result, is_error: event.is_error });
           }
         },
       });

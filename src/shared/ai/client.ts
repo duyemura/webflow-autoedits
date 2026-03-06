@@ -4,7 +4,7 @@ import { logger } from "../logger.js";
 
 export type ProgressEvent =
   | { type: 'tool_start'; name: string; input: Record<string, unknown> }
-  | { type: 'tool_done'; name: string; input: Record<string, unknown>; result: string };
+  | { type: 'tool_done'; name: string; input: Record<string, unknown>; result: string; is_error: boolean };
 
 export interface AICallOptions {
   model?: string;
@@ -118,7 +118,7 @@ export class AIClient {
             toolUse.input as Record<string, unknown>,
           );
 
-          onProgress?.({ type: 'tool_done', name: toolUse.name, input: toolUse.input as Record<string, unknown>, result: result.content });
+          onProgress?.({ type: 'tool_done', name: toolUse.name, input: toolUse.input as Record<string, unknown>, result: result.content, is_error: result.is_error ?? false });
 
           allToolCalls.push({
             name: toolUse.name,
